@@ -127,6 +127,8 @@ private extension MenuPanelCorner {
     func secondary(at selection: Int) -> Bool
     /// ⌥↵. False on every screen with nothing to paste, which is most of them.
     func pasteKeepingWindowOpen(at selection: Int) -> Bool
+    /// A query that exactly equals a row's user-set alias may activate on Space, like ↵.
+    func spaceActivation(matching query: String) -> Int?
     /// False when the screen has no answer to the chord, leaving the key unhandled.
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool
     /// The selection an arrow key lands on, or nil to leave the key to the palette's own default.
@@ -155,6 +157,9 @@ extension PaletteScreen {
             popover: content, selection: menuSelection, onActivate: onActivate)
     }
     func pasteKeepingWindowOpen(at selection: Int) -> Bool { false }
+    /// Nil for every screen with no user aliases to match; declared in the protocol so
+    /// LauncherScreen's override actually dispatches.
+    func spaceActivation(matching query: String) -> Int? { nil }
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool { false }
     func move(_ delta: Int, axis: PaletteAxis, from selection: Int) -> Int? { nil }
     func headerAccessory(
