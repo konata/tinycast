@@ -785,18 +785,18 @@ struct RootPaletteView: View {
             // selection (#696). Attached to the field itself — a focused field consumes
             // printable keys, so an ancestor's onKeyPress never sees them.
             .onKeyPress(keys: [.space], phases: .down) { press in
-                guard press.modifiers.isEmpty,
-                    !menuOpen, !vm.isControlListOpen,
-                    !vm.isComposing, argumentFocused == nil,
-                    searchFocused,
-                    let row = screen.spaceActivation(matching: vm.query)
-                else {
-                    try? "guards menuOpen=\(menuOpen) composing=\(vm.isComposing) focused=\(searchFocused) q=\(vm.query)\n"
-                        .write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
-                    return .ignored
+                let row = screen.spaceActivation(matching: vm.query)
+                let line = "space mods=\(press.modifiers.isEmpty) menu=\(menuOpen) list=\(vm.isControlListOpen) comp=\(vm.isComposing) arg=\(argumentFocused == nil) foc=\(searchFocused) row=\(row.map(String.init) ?? "nil") q=\(vm.query) mode=\(vm.mode)\n"
+                if let handle = FileHandle(forWritingAtPath: "/tmp/tinycast-space.log") {
+                    defer { try? handle.close() }
+                    handle.seekToEndOfFile()
+                    if let data = line.data(using: .utf8) { try? handle.write(contentsOf: data) }
+                } else {
+                    try? line.write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
                 }
-                try? "activate row=\(row) q=\(vm.query)\n"
-                    .write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
+                guard press.modifiers.isEmpty, !menuOpen, !vm.isControlListOpen,
+                    !vm.isComposing, argumentFocused == nil, searchFocused, let row
+                else { return .ignored }
                 screen.activate(at: row)
                 return .handled
             }

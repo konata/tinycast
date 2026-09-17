@@ -238,7 +238,13 @@ struct LauncherScreen: PaletteScreen {
                 FuzzyMatch.normalized(alias) == FuzzyMatch.normalized(q)
             { return index }
         }
-        try? spaceDebug(q).write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
+        if let handle = FileHandle(forWritingAtPath: "/tmp/tinycast-space.log") {
+            defer { try? handle.close() }
+            handle.seekToEndOfFile()
+            if let data = spaceDebug(q).data(using: .utf8) { try? handle.write(contentsOf: data) }
+        } else {
+            try? spaceDebug(q).write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
+        }
         return nil
     }
 
