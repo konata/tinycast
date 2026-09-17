@@ -155,6 +155,9 @@ extension PaletteScreen {
             popover: content, selection: menuSelection, onActivate: onActivate)
     }
     func pasteKeepingWindowOpen(at selection: Int) -> Bool { false }
+    /// A query that exactly equals a row's user-set alias may activate on Space, like ↵.
+    /// Nil on every screen with no user aliases to match.
+    func spaceActivation(matching query: String) -> Int? { nil }
     func perform(_ shortcut: PaletteShortcut, at selection: Int) -> Bool { false }
     func move(_ delta: Int, axis: PaletteAxis, from selection: Int) -> Int? { nil }
     func headerAccessory(

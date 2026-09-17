@@ -477,6 +477,19 @@ struct RootPaletteView: View {
                 if command { return screen.secondary(at: selection) ? .handled : .ignored }
                 return screen.pasteKeepingWindowOpen(at: selection) ? .handled : .ignored
             }
+            // Space runs the row whose user-set alias the query equals, the way ↵ runs the
+            // selection. Every guard mirrors the ↵ path so composing, menus and argument
+            // fields keep the key.
+            .onKeyPress(keys: [.space], phases: .down) { press in
+                guard press.modifiers.isEmpty,
+                    !menuOpen, !vm.isControlListOpen,
+                    !vm.isComposing, argumentFocused == nil,
+                    searchFocused,
+                    let row = screen.spaceActivation(matching: vm.query)
+                else { return .ignored }
+                screen.activate(at: row)
+                return .handled
+            }
             .onKeyPress(.escape) {
                 if menuPanel.isClosing { return .handled }
                 // An open list closes itself first, exactly as the ⌘K menu does.

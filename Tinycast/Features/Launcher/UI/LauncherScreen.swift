@@ -222,6 +222,25 @@ struct LauncherScreen: PaletteScreen {
         }
     }
 
+    /// Space runs the row whose user-set alias the query equals exactly (#696 semantics):
+    /// partial matches and plain names never trigger, so typing keeps its normal meaning.
+    func spaceActivation(matching query: String) -> Int? {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, !q.contains(" ") else { return nil }
+        for (index, row) in rows.enumerated() {
+            let entry: AppEntry
+            switch row {
+            case .entry(let app): entry = app
+            case .fallback(_, let app): entry = app
+            default: continue
+            }
+            if let alias = appIndex.userAlias(for: entry),
+                FuzzyMatch.normalized(alias) == FuzzyMatch.normalized(q)
+            { return index }
+        }
+        return nil
+    }
+
     func activate(at selection: Int) {
         switch row(at: selection) {
         // Error cards no-op — copyCalculatorResult only acts on value payloads.

@@ -639,6 +639,11 @@ final class AppIndex {
         }
     }
 
+    /// The user-set alias for an entry, for the root screen's Space activation.
+    func userAlias(for entry: AppEntry) -> String? {
+        aliases.alias(for: entry.preferenceKey)
+    }
+
     private func rank(_ q: String, limit: Int) -> [AppEntry] {
         Signposts.interval("AppIndex.rank") {
             let learned = ranking.usage(query: q)
