@@ -1,10 +1,16 @@
 name: Personal build
 
-# 个人构建:Debug 渠道(Tinycast Dev.app,与正式版并存),证书来自 repo secrets。
+# 个人构建:默认出正式通道(替换日常版,继承现有配置),可选 Dev 通道。
 on:
   push:
-    branches: [main, "patch/**"]
+    branches: [main]
   workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        type: choice
+        options: [stable, dev]
+        default: stable
 
 jobs:
   build:
@@ -36,23 +42,43 @@ jobs:
           security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed 's/"//g')
           rm -f "$RUNNER_TEMP/cert.p12"
 
-      - name: Build app (Debug / Dev channel)
+      - name: Build app
+        env:
+          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
         run: |
-          xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
-            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
-            OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
-            build 2>&1 | tail -40
+          if [ "$CHANNEL" = "stable" ]; then
+            xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
+              OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+              PRODUCT_NAME=Tinycast PRODUCT_BUNDLE_IDENTIFIER=com.tinycast.app \
+              MARKETING_VERSION="0.10.23-konata" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+              build 2>&1 | tail -40
+          else
+            xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
+              OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+              build 2>&1 | tail -40
+          fi
 
       - name: Package
+        env:
+          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
         run: |
-          APP="$(ls -d "$RUNNER_TEMP/DerivedData/Build/Products/Debug/"*.app | head -1)"
+          if [ "$CHANNEL" = "stable" ]; then
+            APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/Tinycast.app"
+          else
+            APP="$(ls -d "$RUNNER_TEMP/DerivedData/Build/Products/Debug/"*.app | head -1)"
+          fi
           echo "APP=$(basename "$APP")"
+          ./Scripts/verify-signature.sh "$APP" || true
           mkdir -p dist
-          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/personal-$(basename "$APP" .app).zip"
+          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/personal-${CHANNEL}.zip"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: tinycast-personal
+          name: tinycast-personal-${{ github.event.inputs.channel || 'stable' }}
           path: dist/
