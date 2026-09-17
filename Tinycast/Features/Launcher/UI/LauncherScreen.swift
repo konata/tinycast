@@ -242,8 +242,6 @@ struct LauncherScreen: PaletteScreen {
     }
 
     func activate(at selection: Int) {
-
-    func activate(at selection: Int) {
         switch row(at: selection) {
         // Error cards no-op — copyCalculatorResult only acts on value payloads.
         case .calc(let result): core.calculatorCoordinator.copyCalculatorResult(result)
