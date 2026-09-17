@@ -477,19 +477,6 @@ struct RootPaletteView: View {
                 if command { return screen.secondary(at: selection) ? .handled : .ignored }
                 return screen.pasteKeepingWindowOpen(at: selection) ? .handled : .ignored
             }
-            // Space runs the row whose user-set alias the query equals, the way ↵ runs the
-            // selection. Every guard mirrors the ↵ path so composing, menus and argument
-            // fields keep the key.
-            .onKeyPress(keys: [.space], phases: .down) { press in
-                guard press.modifiers.isEmpty,
-                    !menuOpen, !vm.isControlListOpen,
-                    !vm.isComposing, argumentFocused == nil,
-                    searchFocused,
-                    let row = screen.spaceActivation(matching: vm.query)
-                else { return .ignored }
-                screen.activate(at: row)
-                return .handled
-            }
             .onKeyPress(.escape) {
                 if menuPanel.isClosing { return .handled }
                 // An open list closes itself first, exactly as the ⌘K menu does.
@@ -794,6 +781,25 @@ struct RootPaletteView: View {
             .font(metrics.typography.searchField)
             .tint(Theme.Colors.textPrimary)
             .focused($searchFocused)
+            // Space runs the row whose user-set alias the query equals, the way ↵ runs the
+            // selection (#696). Attached to the field itself — a focused field consumes
+            // printable keys, so an ancestor's onKeyPress never sees them.
+            .onKeyPress(keys: [.space], phases: .down) { press in
+                guard press.modifiers.isEmpty,
+                    !menuOpen, !vm.isControlListOpen,
+                    !vm.isComposing, argumentFocused == nil,
+                    searchFocused,
+                    let row = screen.spaceActivation(matching: vm.query)
+                else {
+                    try? "guards menuOpen=\(menuOpen) composing=\(vm.isComposing) focused=\(searchFocused) q=\(vm.query)\n"
+                        .write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
+                    return .ignored
+                }
+                try? "activate row=\(row) q=\(vm.query)\n"
+                    .write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
+                screen.activate(at: row)
+                return .handled
+            }
             // Fills the row's height, so there's no gap above it for topDragStrip to meet.
             .frame(maxHeight: .infinity)
             .background(alignment: .leading) {
