@@ -238,7 +238,24 @@ struct LauncherScreen: PaletteScreen {
                 FuzzyMatch.normalized(alias) == FuzzyMatch.normalized(q)
             { return index }
         }
+        try? spaceDebug(q).write(toFile: "/tmp/tinycast-space.log", atomically: true, encoding: .utf8)
         return nil
+    }
+
+    /// One-line dump of what Space matching saw, while the feature settles.
+    private func spaceDebug(_ q: String) -> String {
+        let seen = rows.prefix(15).map { row -> String in
+            switch row {
+            case .entry(let e):
+                return "[\(e.preferenceKey)=\(e.name) alias:\(appIndex.userAlias(for: e) ?? "-")]"
+            case .fallback(_, let e):
+                return "[fb \(e.preferenceKey)=\(e.name) alias:\(appIndex.userAlias(for: e) ?? "-")]"
+            case .calc: return "[calc]"
+            case .color: return "[color]"
+            case .meeting: return "[meeting]"
+            }
+        }.joined(separator: " ")
+        return "nomatch q=\(q) rows=\(seen)\n"
     }
 
     func activate(at selection: Int) {
