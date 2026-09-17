@@ -46,6 +46,7 @@ jobs:
         env:
           CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
         run: |
+          set -o pipefail
           if [ "$CHANNEL" = "stable" ]; then
             xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
               -derivedDataPath "$RUNNER_TEMP/DerivedData" \
@@ -74,7 +75,7 @@ jobs:
             APP="$(ls -d "$RUNNER_TEMP/DerivedData/Build/Products/Debug/"*.app | head -1)"
           fi
           echo "APP=$(basename "$APP")"
-          ./Scripts/verify-signature.sh "$APP" || true
+          ./Scripts/verify-signature.sh "$APP"
           mkdir -p dist
           ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/personal-${CHANNEL}.zip"
 
