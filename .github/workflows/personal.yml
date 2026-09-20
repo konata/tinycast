@@ -15,6 +15,8 @@ on:
 jobs:
   build:
     runs-on: macos-26
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
 
@@ -83,3 +85,20 @@ jobs:
         with:
           name: tinycast-personal-${{ github.event.inputs.channel || 'stable' }}
           path: dist/
+
+      # Rolling release per channel so the download URL stays fixed:
+      # releases/download/personal-stable/personal-stable.zip
+      - name: Publish to rolling release
+        env:
+          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="personal-${CHANNEL}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/*.zip --clobber
+          else
+            gh release create "$TAG" dist/*.zip \
+              --title "Personal ${CHANNEL}" \
+              --notes "Auto build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}" \
+              --prerelease
+          fi
