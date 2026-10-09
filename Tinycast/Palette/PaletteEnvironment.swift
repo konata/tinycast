@@ -30,6 +30,7 @@ extension View {
             .environment(core.fileSearch)
             .environment(core.menuSearch)
             .environment(core.windowSwitch)
+            .environment(core.windowSummon)
             .environment(core.runningApps)
             .environment(core.hotKeys)
             .environment(core.uninstall)

@@ -1,7 +1,6 @@
 import SwiftUI
 
-/// Moving somewhere — a window, a menu item — rather than changing something. Two features,
-/// one switch, so the pane lives here rather than inside either of them.
+/// Window navigation, retrieval and menu search share one switch.
 struct NavigationSettingsView: View {
     @Environment(AppSettings.self) private var settings
 
@@ -11,7 +10,7 @@ struct NavigationSettingsView: View {
             Section {
                 Toggle(isOn: $settings.navigationEnabled) {
                     SettingsRowTitle(.navigationNavigation, "Enable navigation")
-                    Text("Jump to any open window, or press any menu bar item, from the launcher.")
+                    Text("Switch to a window, summon one here, or search menu bar items.")
                 }
             } header: {
                 SettingsSectionHeader(.navigationNavigation)

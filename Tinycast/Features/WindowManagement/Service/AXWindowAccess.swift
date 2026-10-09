@@ -41,6 +41,13 @@ enum AXWindowAccess {
         return windows
     }
 
+    static func window(withID windowID: CGWindowID, in application: AXUIElement) -> AXUIElement? {
+        windows(in: application).first { window in
+            AXUIElementSetMessagingTimeout(window, 0.2)
+            return TCWindowIDForAXElement(window) == windowID
+        }
+    }
+
     /// A real, restorable window: not a sheet, popover or minimized one, and it reports geometry.
     static func isEligible(_ window: AXUIElement) -> Bool {
         guard string(window, kAXRoleAttribute) == (kAXWindowRole as String) else { return false }

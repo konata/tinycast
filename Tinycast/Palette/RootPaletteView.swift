@@ -15,6 +15,7 @@ struct RootPaletteView: View {
     @Environment(FileSearchSession.self) private var fileSearch
     @Environment(MenuSearchSession.self) private var menuSearch
     @Environment(WindowSwitchSession.self) private var windowSwitch
+    @Environment(WindowSummonSession.self) private var windowSummon
     @Environment(CalendarStore.self) private var calendarStore
     /// Observed so the join card's countdown redraws on the minute boundary.
     @Environment(MeetingClock.self) private var meetingClock
@@ -81,6 +82,8 @@ struct RootPaletteView: View {
                 session: menuSearch, core: core, vm: vm, openActions: openActions)
         case .switchWindows:
             return WindowSwitchScreen(session: windowSwitch, core: core)
+        case .summonWindows:
+            return WindowSummonScreen(session: windowSummon, core: core)
         case .schedule:
             return ScheduleScreen(
                 store: calendarStore, clock: meetingClock, core: core, vm: vm,
@@ -323,6 +326,9 @@ struct RootPaletteView: View {
             // A preserved screen re-summons as it was left, so a menu must end with the palette.
             .onChange(of: vm.isVisible) {
                 if !vm.isVisible, menuOpen { closeMenus() }
+                if vm.isVisible, vm.mode == .summonWindows {
+                    core.windowSummonCoordinator.scanIfNeeded()
+                }
             }
             .onChange(of: vm.query) {
                 if vm.collapseQueryLineBreaks() { return }
@@ -331,6 +337,7 @@ struct RootPaletteView: View {
                 if vm.mode == .fileSearch { fileSearch.search(vm.query, filter: vm.fileSearchFilter) }
                 if vm.mode == .menuSearch { menuSearch.filter(vm.query) }
                 if vm.mode == .switchWindows { windowSwitch.filter(vm.query) }
+                if vm.mode == .summonWindows { windowSummon.filter(vm.query) }
                 // A command that took over the search text filters its own list.
                 if vm.mode == .extensionCommand, let handler = extensionScreen.searchTextHandler {
                     extensions.dispatch(handler: handler, arguments: [vm.query])
@@ -373,6 +380,11 @@ struct RootPaletteView: View {
                 }
                 if vm.mode != .menuSearch { menuSearch.reset() }
                 if vm.mode != .switchWindows { windowSwitch.reset() }
+                if vm.mode == .summonWindows {
+                    core.windowSummonCoordinator.scanIfNeeded()
+                } else {
+                    windowSummon.reset()
+                }
                 // Leaving the screen any other way than Escape still ends the command's session.
                 if vm.mode != .extensionCommand, extensions.running != nil, !extensions.isAuthorizing {
                     Task { await extensions.stop() }

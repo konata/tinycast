@@ -9,6 +9,7 @@ final class PaletteCoordinator {
     private let fileSearch: FileSearchSession
     private let menuSearch: MenuSearchSession
     private let windowSwitch: WindowSwitchSession
+    private let windowSummon: WindowSummonSession
     private let windowController: PaletteWindowController
     /// Features whose launcher rows are read from outside Tinycast re-read them on each open.
     var onLauncherShown: (() -> Void)?
@@ -17,9 +18,8 @@ final class PaletteCoordinator {
         palette: PaletteState,
         settings: AppSettings,
         appIndex: AppIndex,
-        fileSearch: FileSearchSession,
-        menuSearch: MenuSearchSession,
-        windowSwitch: WindowSwitchSession,
+        fileSearch: FileSearchSession, menuSearch: MenuSearchSession,
+        windowSwitch: WindowSwitchSession, windowSummon: WindowSummonSession,
         windowController: PaletteWindowController
     ) {
         self.palette = palette
@@ -28,12 +28,14 @@ final class PaletteCoordinator {
         self.fileSearch = fileSearch
         self.menuSearch = menuSearch
         self.windowSwitch = windowSwitch
+        self.windowSummon = windowSummon
         self.windowController = windowController
     }
 
     // MARK: - Palette control
 
     var isVisible: Bool { windowController.isVisible }
+    var currentScreen: NSScreen? { windowController.currentScreen }
 
     /// The app an action acts on: the one displaced, else what a hotkey found frontmost.
     var targetApp: NSRunningApplication? {
@@ -86,6 +88,7 @@ final class PaletteCoordinator {
         if palette.mode == .fileSearch { fileSearch.search(palette.query) }
         if palette.mode == .menuSearch { menuSearch.filter(palette.query) }
         if palette.mode == .switchWindows { windowSwitch.filter(palette.query) }
+        if palette.mode == .summonWindows { windowSummon.filter(palette.query) }
         // Re-scan on open so an app uninstalled since the last scan drops out of the launcher.
         if palette.mode == .launcher {
             Task { await appIndex.refresh() }
@@ -97,6 +100,7 @@ final class PaletteCoordinator {
         fileSearch.cancel()
         menuSearch.reset()
         windowSwitch.reset()
+        windowSummon.reset()
         windowController.hide(restoreFocus: restoreFocus)
     }
 

@@ -16,6 +16,7 @@ final class LauncherCoordinator {
     private let fileSearchCoordinator: FileSearchCoordinator
     private let menuSearchCoordinator: MenuSearchCoordinator
     private let windowSwitchCoordinator: WindowSwitchCoordinator
+    private let windowSummonCoordinator: WindowSummonCoordinator
     private let notesCoordinator: NotesCoordinator
     private let extensionCoordinator: ExtensionCoordinator
     private let calendarCoordinator: CalendarCoordinator
@@ -36,6 +37,7 @@ final class LauncherCoordinator {
         fileSearchCoordinator: FileSearchCoordinator,
         menuSearchCoordinator: MenuSearchCoordinator,
         windowSwitchCoordinator: WindowSwitchCoordinator,
+        windowSummonCoordinator: WindowSummonCoordinator,
         notesCoordinator: NotesCoordinator,
         extensionCoordinator: ExtensionCoordinator,
         calendarCoordinator: CalendarCoordinator,
@@ -54,6 +56,7 @@ final class LauncherCoordinator {
         self.fileSearchCoordinator = fileSearchCoordinator
         self.menuSearchCoordinator = menuSearchCoordinator
         self.windowSwitchCoordinator = windowSwitchCoordinator
+        self.windowSummonCoordinator = windowSummonCoordinator
         self.notesCoordinator = notesCoordinator
         self.extensionCoordinator = extensionCoordinator
         self.calendarCoordinator = calendarCoordinator
@@ -180,6 +183,8 @@ final class LauncherCoordinator {
             menuSearchCoordinator.show()
         case .switchWindows:
             windowSwitchCoordinator.show()
+        case .summonWindow:
+            windowSummonCoordinator.show()
         case .openCamera:
             dismissPalette()
             Task { await core.cameraCoordinator.show() }

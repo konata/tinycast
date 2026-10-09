@@ -42,6 +42,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     }
 
     var isVisible: Bool { panel?.isVisible ?? false }
+    var currentScreen: NSScreen? { panel?.screen }
 
     /// What the palette covered when it was summoned, for anything it expands into on dismissal.
     var previousTarget: InjectionTarget? {

@@ -1,8 +1,8 @@
 import Foundation
 
-/// One open window the switcher offers. A handle, not an `AXUIElement`: this layer stays pure.
+/// One window row shared by Switch Windows and Summon Window; platform handles stay elsewhere.
 struct WindowSwitchEntry: Identifiable, Hashable, Sendable {
-    /// The app's own front-to-back order, flattened across apps; also indexes the live elements.
+    /// A session-local index into the selected screen's live targets.
     let handle: Int
     let appName: String
     let bundleID: String
