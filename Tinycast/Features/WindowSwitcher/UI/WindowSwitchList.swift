@@ -7,6 +7,7 @@ struct WindowSwitchList: View {
     let selectedID: WindowSwitchEntry.ID?
     let scroll: ScrollIntent
     let onActivate: (WindowSwitchEntry) -> Void
+    var places: [Int: String] = [:]
 
     private var firstRowSelected: Bool {
         selectedID != nil && selectedID == entries.first?.id
@@ -17,7 +18,9 @@ struct WindowSwitchList: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(entries) { entry in
-                        WindowSwitchRow(entry: entry, selected: entry.id == selectedID)
+                        WindowSwitchRow(
+                            entry: entry, selected: entry.id == selectedID,
+                            place: places[entry.handle])
                             .selectionFrame(entry.id == selectedID)
                             .contentShape(Rectangle())
                             .onTapGesture { onActivate(entry) }
@@ -41,6 +44,7 @@ private struct WindowSwitchRow: View {
     @Environment(\.metrics) private var metrics
     let entry: WindowSwitchEntry
     let selected: Bool
+    let place: String?
     @State private var hovered = false
 
     private var fill: Color {
@@ -49,9 +53,11 @@ private struct WindowSwitchRow: View {
         return .clear
     }
 
-    private var trailing: String {
+    private var owner: String {
         entry.isMinimized ? "\(entry.appName) · Minimized" : entry.appName
     }
+
+    private var trailing: String { place.map { "\(owner) · \($0)" } ?? owner }
 
     var body: some View {
         HStack(spacing: metrics.spacing.lg) {
@@ -70,10 +76,17 @@ private struct WindowSwitchRow: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: metrics.spacing.md)
-            Text(trailing)
-                .font(metrics.typography.rowTrailing)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            HStack(spacing: metrics.spacing.sm) {
+                Text(owner)
+                    .lineLimit(1)
+                if let place {
+                    Text(place)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .font(metrics.typography.rowTrailing)
+            .foregroundStyle(.secondary)
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)

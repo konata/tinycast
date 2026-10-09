@@ -37,6 +37,7 @@
 		0B57F477B21A81B22DAA5513 /* AppleShortcutRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 64E4C6445202F80D6756AF1A /* AppleShortcutRunner.swift */; };
 		0B9C941402B85C69A33200C2 /* UninstallProtection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 37A48095F6487DEE76663F88 /* UninstallProtection.swift */; };
 		0C1CACEF014462D3F581CE54 /* EmojiSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B42664C60B760276FBAAD61 /* EmojiSettingsView.swift */; };
+		0CA2579252D8AE5ABBDF21D0 /* WindowSummonLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3237425295F9560845445518 /* WindowSummonLocation.swift */; };
 		0CC2291DE8806FDFB478F8A0 /* FileSearchSurface.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90831A25F96F3563BEC60FCC /* FileSearchSurface.swift */; };
 		0CD06036347A6D96B1F7947F /* AppleShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = A379CB384B76FF70AC72E235 /* AppleShortcut.swift */; };
 		0CDD3AE7DF97899340E56061 /* FileSearchQuickLook.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5A83359DA89BD4E1E6FC3087 /* FileSearchQuickLook.swift */; };
@@ -777,6 +778,7 @@
 		31757FAE5F3E9E06D9B77DCA /* ReleaseNotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotes.swift; sourceTree = "<group>"; };
 		31BAD6EE1BA3036C4B5A3D19 /* HUDPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HUDPresenter.swift; sourceTree = "<group>"; };
 		31F2C83F4B985EA6CD03BC69 /* QuickActionResultView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickActionResultView.swift; sourceTree = "<group>"; };
+		3237425295F9560845445518 /* WindowSummonLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowSummonLocation.swift; sourceTree = "<group>"; };
 		32733B27AE0BD75742D1394F /* DialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DialogView.swift; sourceTree = "<group>"; };
 		32D20FAFD9F3CC0E5802A966 /* ExtensionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtensionImage.swift; sourceTree = "<group>"; };
 		33994DC2FB0A6B23A403CA29 /* AppLauncher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLauncher.swift; sourceTree = "<group>"; };
@@ -2899,6 +2901,7 @@
 		F0ACECD068364BB398C786A3 /* Model */ = {
 			isa = PBXGroup;
 			children = (
+				3237425295F9560845445518 /* WindowSummonLocation.swift */,
 				479047BCB47CE279EB1D256D /* WindowSwitchEntry.swift */,
 				867B0475618A01A765AC0DC5 /* WindowSwitchOrder.swift */,
 				F42BECB8234FEA49797B68F6 /* WindowSwitchQuery.swift */,
@@ -3700,6 +3703,7 @@
 				6AF8D4CB26C1B1F53C71B5E4 /* WindowReader.swift in Sources */,
 				A4882775488C05820432F797 /* WindowSummonCoordinator.swift in Sources */,
 				255893CA4B37134810BC1E37 /* WindowSummonInventory.swift in Sources */,
+				0CA2579252D8AE5ABBDF21D0 /* WindowSummonLocation.swift in Sources */,
 				B59BFC4397910F9FEA9ECC34 /* WindowSummonScreen.swift in Sources */,
 				D909AE90D258D4B85C4E9C5D /* WindowSummonSession.swift in Sources */,
 				BD0B60F4203FD2D852377CD1 /* WindowSwitchCoordinator.swift in Sources */,

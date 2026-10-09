@@ -38,6 +38,39 @@ uint64_t TCCurrentManagedSpace(CFStringRef displayUUID) {
     return 0;
 }
 
+NSArray<NSNumber *> *TCWindowSpaceIDs(CGWindowID windowID) {
+    void *framework = SkyLight();
+    if (!framework) return nil;
+    MainConnection connection = dlsym(framework, "SLSMainConnectionID");
+    WindowSpaces spaces = dlsym(framework, "SLSCopySpacesForWindows");
+    if (!connection || !spaces) return nil;
+    NSArray *windows = @[@(windowID)];
+    CFArrayRef listing = spaces(connection(), 7, (__bridge CFArrayRef)windows);
+    return listing ? CFBridgingRelease(listing) : nil;
+}
+
+NSDictionary<NSNumber *, NSNumber *> *TCSpaceDisplayIDs(void) {
+    void *framework = SkyLight();
+    if (!framework) return nil;
+    MainConnection connection = dlsym(framework, "SLSMainConnectionID");
+    ManagedDisplays displays = dlsym(framework, "SLSCopyManagedDisplaySpaces");
+    if (!connection || !displays) return nil;
+    CFArrayRef listing = displays(connection());
+    if (!listing) return nil;
+    NSMutableDictionary<NSNumber *, NSNumber *> *mapping = [NSMutableDictionary dictionary];
+    for (NSDictionary *display in CFBridgingRelease(listing)) {
+        CFUUIDRef uuid = CFUUIDCreateFromString(nil, (__bridge CFStringRef)display[@"Display Identifier"]);
+        if (!uuid) continue;
+        CGDirectDisplayID screenID = CGDisplayGetDisplayIDFromUUID(uuid);
+        CFRelease(uuid);
+        if (screenID == kCGNullDirectDisplay) continue;
+        for (NSDictionary *space in display[@"Spaces"]) {
+            mapping[space[@"id64"]] = @(screenID);
+        }
+    }
+    return mapping;
+}
+
 bool TCMoveWindowToSpace(CGWindowID windowID, uint64_t spaceID) {
     if (!SkyLight()) return false;
     Class operationClass = NSClassFromString(@"SLSBridgedMoveWindowsToManagedSpaceOperation");
@@ -49,16 +82,7 @@ bool TCMoveWindowToSpace(CGWindowID windowID, uint64_t spaceID) {
 }
 
 bool TCWindowIsInSpace(CGWindowID windowID, uint64_t spaceID) {
-    void *framework = SkyLight();
-    if (!framework) return false;
-    MainConnection connection = dlsym(framework, "SLSMainConnectionID");
-    WindowSpaces spaces = dlsym(framework, "SLSCopySpacesForWindows");
-    if (!connection || !spaces) return false;
-    NSArray *windows = @[@(windowID)];
-    CFArrayRef listing = spaces(connection(), 7, (__bridge CFArrayRef)windows);
-    if (!listing) return false;
-    NSArray<NSNumber *> *membership = CFBridgingRelease(listing);
-    return [membership containsObject:@(spaceID)];
+    return [TCWindowSpaceIDs(windowID) containsObject:@(spaceID)];
 }
 
 CGWindowID TCWindowIDForAXElement(AXUIElementRef window) {

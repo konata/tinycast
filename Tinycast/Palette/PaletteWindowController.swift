@@ -248,6 +248,9 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
         guard let panel else { return }
         let moved = CGPoint(x: panel.frame.minX, y: panel.frame.maxY)
         anchor = moved
+        if core.palette.mode == .summonWindows {
+            core.windowSummonCoordinator.refreshDestination()
+        }
         guard drag != nil else { return }
         trackDrag(to: moved)
     }

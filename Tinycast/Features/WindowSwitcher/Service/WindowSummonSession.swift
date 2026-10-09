@@ -7,8 +7,14 @@ final class WindowSummonSession {
     private(set) var filtered: [WindowSwitchEntry] = []
     private(set) var isLoading = false
     private(set) var hasStarted = false
+    private(set) var locations: [Int: [WindowSummonLocation]] = [:]
+
+    var labels: [Int: String] {
+        locations.mapValues(WindowSummonLocation.summary)
+    }
 
     private var query = ""
+    @ObservationIgnored private var currentSpaceID: UInt64 = 0
     @ObservationIgnored private var targets: [Int: WindowSummonInventory.Target] = [:]
     @ObservationIgnored private var scan: Task<Void, Never>?
 
@@ -23,6 +29,7 @@ final class WindowSummonSession {
     func present(_ snapshot: WindowSummonInventory.Snapshot) {
         self.snapshot = WindowSwitchOrder.sorted(snapshot.entries)
         targets = snapshot.targets
+        locations = snapshot.locations
         isLoading = false
         scan = nil
         applyQuery()
@@ -35,12 +42,20 @@ final class WindowSummonSession {
 
     func target(for handle: Int) -> WindowSummonInventory.Target? { targets[handle] }
 
+    func destination(_ spaceID: UInt64) {
+        guard currentSpaceID != spaceID else { return }
+        currentSpaceID = spaceID
+        applyQuery()
+    }
+
     func reset() {
         scan?.cancel()
         scan = nil
         snapshot = []
         filtered = []
         targets = [:]
+        locations = [:]
+        currentSpaceID = 0
         query = ""
         isLoading = false
         hasStarted = false
@@ -52,7 +67,8 @@ final class WindowSummonSession {
     }
 
     private func applyQuery() {
-        filtered = WindowSwitchQuery.rank(
-            snapshot, for: query.trimmingCharacters(in: .whitespacesAndNewlines))
+        filtered = WindowSummonOrder.rank(
+            snapshot, locations: locations, currentSpaceID: currentSpaceID,
+            for: query.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 }

@@ -35,6 +35,8 @@ the launcher and their still-recorded shortcuts do nothing.
   pick the wrong window when an app has two documents with the same name.
 - **The destination is the palette's display at ↵.** The panel joins all Spaces and may be dragged,
   so its own window ID and its initial placement cannot identify the destination Space.
+- **Summon Window puts the destination Space last.** It partitions before fuzzy ranking and the
+  200-row cap, so a stronger title match in the current Space cannot displace a remote window.
 
 ## How it is put together
 
@@ -43,6 +45,7 @@ the launcher and their still-recorded shortcuts do nothing.
 | `Model/WindowSwitchEntry.swift` | one row: handle, app, title, minimized, rank, search fields |
 | `Model/WindowSwitchOrder.swift` | the MRU sort, pure and total |
 | `Model/WindowSwitchQuery.swift` | ranking over `SearchRelevance`, capped at 200 rows |
+| `Model/WindowSummonLocation.swift` | pure Space/display labels and Summon-only ordering |
 | `Service/WindowZOrder.swift` | the one `CGWindowList` call: per-pid front rank |
 | `Service/WindowSwitchSweep.swift` | the AX sweep, and the live element table it hands back |
 | `Service/WindowSwitchSession.swift` | the observable state — snapshot, filtered rows, elements |
@@ -103,9 +106,17 @@ window's app quit between the sweep and the ↵.
 `WindowSummonInventory` asks `SCShareableContent` for off-screen windows as well as on-screen ones.
 It keeps layer-zero windows with a nonempty title, a positive frame and a live owning application;
 it does not apply `WindowInventory.candidates()`'s regular-app restriction. The palette reuses the
-switcher's row, sort and fuzzy query, but stores `handle → (CGWindowID, app)` separately. Empty titles
-are excluded because ScreenCaptureKit also returns many untitled helper surfaces, and a title is what
-this command asks the user to choose.
+switcher's row, base sort and fuzzy scorer, but stores `handle → (CGWindowID, app)` separately. Empty
+titles are excluded because ScreenCaptureKit also returns many untitled helper surfaces, and a title
+is what this command asks the user to choose.
+
+Each row ends with `Space ID @ Screen ID`, after the app name. The Space IDs come from
+`SLSCopySpacesForWindows`; `SLSCopyManagedDisplaySpaces` maps them to numeric `CGDirectDisplayID`s.
+A window in several Spaces lists each pair. Some hidden windows have no reported Space; they remain
+selectable and show `? @ ?`, rather than a guessed location. Remote windows rank first, unknown
+locations next, and windows in the palette display's current Space last, even for a typed query.
+Dragging the palette to another display or changing that display's active Space re-evaluates the
+destination and list order.
 
 ScreenCaptureKit needs **Screen Recording** for other apps' titles. Summon Window checks that grant and
 Accessibility when opening and again on ↵; a missing grant prompts and offers the relevant System
@@ -164,7 +175,8 @@ Space. Other apps, minimized windows and full-screen Spaces still need integrate
 `Tests/window-switch-test.swift` covers the pure half: the handle-derived id, the untitled-window
 fallback, the name/owner split in the search fields, the MRU order and its totality under a shuffled
 sweep, the minimized run at the end, ranking, and the 200-row cap under both an empty and a
-matching query.
+matching query. It also covers the Summon location label, cross-display Space grouping, a current
+Space window with a stronger text match, multiple Space memberships, and the cap after grouping.
 
 The platform paths are not compiled into the harness and need manual verification, particularly:
 
@@ -176,3 +188,6 @@ The platform paths are not compiled into the harness and need manual verificatio
    the palette's current display and Space without switching Spaces.
 6. After dragging the palette to a different display, ↵ uses that display as the destination.
 7. Revoking Screen Recording or Accessibility while the list is open reports the missing grant.
+8. Summon rows show the correct Space and numeric display IDs; dragging the palette to the other
+   display moves that display's current Space to the end of the results.
+9. With Summon open, switch Spaces on the palette's display; that Space moves to the end.

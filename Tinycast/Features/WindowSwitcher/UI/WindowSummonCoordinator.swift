@@ -9,6 +9,7 @@ final class WindowSummonCoordinator {
     private let palette: PaletteState
     private let paletteCoordinator: PaletteCoordinator
     private unowned let core: AppCore
+    private var spaceObserver: NotificationToken?
 
     init(
         settings: AppSettings, appIndex: AppIndex, session: WindowSummonSession,
@@ -20,6 +21,13 @@ final class WindowSummonCoordinator {
         self.palette = palette
         self.paletteCoordinator = paletteCoordinator
         self.core = core
+        let center = NSWorkspace.shared.notificationCenter
+        let token = center.addObserver(
+            forName: NSWorkspace.activeSpaceDidChangeNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated { self?.refreshDestination() }
+        }
+        spaceObserver = NotificationToken(token, center: center)
     }
 
     func applyEnabled() {
@@ -57,6 +65,7 @@ final class WindowSummonCoordinator {
             return
         }
         session.begin()
+        refreshDestination()
         session.filter(palette.query)
         session.retain(Task { [weak self] in
             guard let self else { return }
@@ -77,6 +86,14 @@ final class WindowSummonCoordinator {
                     symbol: "macwindow.on.rectangle", tone: .danger)
             }
         })
+    }
+
+    func refreshDestination() {
+        guard paletteCoordinator.isShowing(.summonWindows),
+            let screen = paletteCoordinator.currentScreen,
+            let uuid = AXScreens.uuid(of: screen)
+        else { return }
+        session.destination(TCCurrentManagedSpace(uuid as CFString))
     }
 
     func activate(_ entry: WindowSwitchEntry) {
