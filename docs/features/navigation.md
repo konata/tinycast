@@ -30,9 +30,11 @@ the launcher and their still-recorded shortcuts do nothing.
   which races the raise and can land on the wrong window — the same reason a Space command does it.
 - **`AXWindowAccess` stays the one AX window layer.** `unminimize` and `focus` live there rather
   than in a second AX shim, and Window Layouts brings its frontmost window forward through `focus`.
-- **Summon Window selects by `CGWindowID`.** Its list comes from ScreenCaptureKit, not the AX sweep;
-  the AX element is matched by ID only after macOS moves the selected window. Matching titles would
-  pick the wrong window when an app has two documents with the same name.
+- **Summon Window selects by `CGWindowID`.** Its list joins SkyLight's windows in every managed Space
+  with ScreenCaptureKit's off-screen IDs and titles, not the AX sweep. For an ordinary window, the AX
+  element is matched by ID after macOS moves it; a full-screen window needs that match before leaving
+  full screen. Matching titles would pick the wrong window when an app has two documents with the
+  same name.
 - **A missing AX match before a move is not a filter.** Other Spaces can hide real windows from the
   app's AX list; a successful Space lookup with no membership is the scan's exclusion instead.
 - **The destination is the palette's display at ↵.** The panel joins all Spaces and may be dragged,
@@ -54,11 +56,11 @@ the launcher and their still-recorded shortcuts do nothing.
 | `UI/WindowSwitchCoordinator.swift` | show, activate, the switch, the failure reports |
 | `UI/WindowSwitchScreen.swift` | the `PaletteScreen` conformance and the two empty states |
 | `UI/WindowSwitchList.swift` | the list and its row: app icon, title, app name |
-| `Service/WindowSummonInventory.swift` | ScreenCaptureKit's titled normal windows across displays and Spaces |
+| `Service/WindowSummonInventory.swift` | titled WindowServer windows in every managed Space and display |
 | `Service/WindowSummonSession.swift` | one asynchronous listing, its query and window ID targets |
 | `UI/WindowSummonCoordinator.swift` | permission gates, destination Space, move and focus |
 | `UI/WindowSummonScreen.swift` | the separate Summon Window palette mode |
-| `Platform/WindowSystemBridge.{h,m}` | dynamic SkyLight Space operation and AX-to-window-ID lookup |
+| `Platform/WindowSystemBridge.{h,m}` | WindowServer inventory, dynamic SkyLight Space operations and AX-to-window-ID lookup |
 
 ## Switch Windows recency without a private symbol
 
@@ -105,16 +107,21 @@ window's app quit between the sweep and the ↵.
 
 ## Summoning a window
 
-`WindowSummonInventory` asks `SCShareableContent` for off-screen windows as well as on-screen ones.
-It keeps layer-zero windows with a nonempty title, a positive frame and a live owning application;
-it omits windows whose Space lookup succeeds with no membership, and does not apply
-`WindowInventory.candidates()`'s regular-app restriction. The palette reuses the
-switcher's row, base sort and fuzzy scorer, but stores `handle → (CGWindowID, app)` separately. Empty
-titles are excluded because ScreenCaptureKit also returns many untitled helper surfaces, and a title
-is what this command asks the user to choose.
+`WindowSummonInventory` combines `SCShareableContent`'s off-screen IDs and titles with a WindowServer
+query over every managed Space on every display. The WindowServer supplies window IDs, ownership,
+parentage, level, ordering, minimized and full-screen state, and Space membership. It keeps titled
+root windows from live, visible apps at the normal window level, plus full-screen windows. It also
+keeps minimized windows, and omits hidden apps, ordered-out windows attached to an active Space,
+and windows whose Space lookup succeeds with no membership. The scan does not apply
+`WindowInventory.candidates()`'s regular-app restriction. This keeps all eligible windows per app;
+inactive native tabs without a Space are omitted, leaving their visible tab-group representative.
+The palette reuses the switcher's row, base sort and fuzzy scorer, but stores
+`handle → (CGWindowID, app)` separately. Empty titles are excluded because the server also returns
+many untitled helper surfaces, and a title is what this command asks the user to choose.
 
-Each row ends with `Space ID @ Screen ID`, after the app name. The Space IDs come from
-`SLSCopySpacesForWindows`; `SLSCopyManagedDisplaySpaces` maps them to numeric `CGDirectDisplayID`s.
+Each row ends with `Space ID @ Screen ID`, after the app name. The scan records the Spaces that
+actually listed each window; `SLSCopySpacesForWindows` fills any missing membership, and
+`SLSCopyManagedDisplaySpaces` maps Spaces to numeric `CGDirectDisplayID`s.
 A window in several Spaces lists each pair. A failed Space lookup remains selectable and shows
 `? @ ?`; a successful empty result is excluded. Remote windows rank first, unknown locations next,
 and windows in the palette display's current Space last, even for a typed query.
@@ -129,9 +136,12 @@ a fresh scan, so its window IDs cannot outlive the screen that showed them. If t
 become available to this process yet, the scan error tells the user to reopen Tinycast.
 
 At ↵, the coordinator reads the palette panel's actual `NSScreen`, maps its display UUID through
-`SLSCopyManagedDisplaySpaces` to that display's current Space, and hides the palette without restoring
-the prior app's focus. Before each move attempt, a fresh ScreenCaptureKit listing confirms that the
-selected `CGWindowID` still belongs to its app, including when it is on another Space.
+`SLSCopyManagedDisplaySpaces` to that display's current desktop Space, and hides the palette without
+restoring the prior app's focus. Before each move attempt, a targeted WindowServer lookup confirms
+that the selected `CGWindowID` still belongs to its app, including when it is on another Space.
+For a full-screen source, it first matches the exact Accessibility window ID, exits full screen if
+the app allows it, and waits for that same window to settle in a desktop Space. A full-screen
+destination is rejected before hiding the palette.
 `SLSBridgedMoveWindowsToManagedSpaceOperation` then moves that ID. The WindowServer updates Space
 membership after the call returns, so the coordinator checks for up to two seconds before claiming
 success. It unhides a hidden app, then waits up to two seconds for the same ID in its AX windows,
@@ -140,9 +150,12 @@ target display, and focuses it. If AX or final focus cannot be confirmed, a noti
 actual Space move from a window that was already there.
 
 SkyLight's move operation and `_AXUIElementGetWindow` are private macOS interfaces, looked up at
-runtime by the small Objective-C bridge. On macOS 26.6.1, a disposable window moved from a second
-display's Space 10 to the primary display's Space 6 and back without changing either display's active
-Space. Other apps, minimized windows and full-screen Spaces still need integrated manual checks.
+runtime by the small Objective-C bridge. On macOS 26.6.1, disposable probes confirmed enumeration
+across both displays and five Spaces, selected native tabs, minimized tab groups, and full-screen
+transition behavior. A disposable window also moved from a second display's Space 10 to the primary
+display's Space 6 and back without changing either display's active Space. An app may withhold its
+Accessibility window while on another Space; a full-screen window in that state cannot be summoned
+until its exact AX element becomes available. Integrated checks with the shipped build remain needed.
 
 ## Wiring
 
@@ -197,5 +210,9 @@ The platform paths are not compiled into the harness and need manual verificatio
 9. With Summon open, switch Spaces on the palette's display; that Space moves to the end.
 10. A titled window with a confirmed empty Space membership is absent from Summon;
     a Space lookup failure still shows `? @ ?`.
-11. A hidden app's window is unhidden after its Space move and matched by exact AX window ID;
-    a window already in the destination never reports that it was moved.
+11. Hidden apps are absent; normal, minimized and full-screen windows in other Spaces appear, and
+    native tab groups contribute one selected representative. Every eligible window in one app appears.
+12. A full-screen window exits full screen before moving to a desktop Space; a full-screen
+    destination is rejected without moving it. An app that withholds the exact AX window reports a
+    failure before changing full-screen state.
+13. A window already in the destination never reports that it was moved.

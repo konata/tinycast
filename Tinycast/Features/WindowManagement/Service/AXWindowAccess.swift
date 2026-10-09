@@ -68,6 +68,11 @@ enum AXWindowAccess {
         return (value as? Bool) ?? false
     }
 
+    static func exitFullScreen(_ window: AXUIElement) -> Bool {
+        guard isSettable(fullScreenAttribute as String, on: window) else { return false }
+        return AXUIElementSetAttributeValue(window, fullScreenAttribute, kCFBooleanFalse) == .success
+    }
+
     // MARK: - Bringing one forward
 
     static func unminimize(_ window: AXUIElement) -> Bool {

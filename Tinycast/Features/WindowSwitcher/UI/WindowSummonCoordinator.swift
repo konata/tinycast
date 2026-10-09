@@ -120,6 +120,10 @@ final class WindowSummonCoordinator {
             Task { [weak self] in await self?.reportMoveFailure(entry) }
             return
         }
+        guard TCSpaceType(spaceID) == 0 else {
+            Task { [weak self] in await self?.reportDestinationFailure() }
+            return
+        }
         let canvas = AXGeometry(screens: NSScreen.screens).flip(screen.visibleFrame)
         paletteCoordinator.hidePalette(restoreFocus: false)
         Task { [weak self] in
@@ -136,6 +140,11 @@ final class WindowSummonCoordinator {
             await reportGone(entry)
             return
         }
+        let sourceSpaces = TCWindowSpaceIDs(windowID) ?? []
+        if target.isFullscreen || sourceSpaces.contains(where: { TCSpaceType($0.uint64Value) == 4 }) {
+            guard await exitFullScreen(entry, target: target) else { return }
+        }
+        guard !Task.isCancelled else { return }
         let moved = !TCWindowIsInSpace(windowID, spaceID)
         if moved {
             // A second move can be ignored while the previous Space transition settles.
@@ -188,6 +197,14 @@ final class WindowSummonCoordinator {
         if AXWindowAccess.bool(window, kAXMinimizedAttribute) == true {
             _ = AXWindowAccess.unminimize(window)
         }
+        guard !AXWindowAccess.isFullScreen(window),
+            !(TCWindowSpaceIDs(windowID) ?? []).contains(where: {
+                TCSpaceType($0.uint64Value) == 4
+            })
+        else {
+            await reportPartial(entry, moved: moved, detail: "it is still full screen")
+            return
+        }
         guard let frame = AXWindowAccess.frame(of: window) else {
             await reportPartial(entry, moved: moved, detail: "its position couldn’t be verified")
             return
@@ -217,6 +234,55 @@ final class WindowSummonCoordinator {
         await reportPartial(entry, moved: moved, detail: "Tinycast couldn’t confirm focus")
     }
 
+    private func exitFullScreen(
+        _ entry: WindowSwitchEntry, target: WindowSummonInventory.Target
+    ) async -> Bool {
+        guard !Task.isCancelled else { return false }
+        let windowID = target.windowID
+        let application = AXWindowAccess.application(for: target.app.processIdentifier, timeout: 0.2)
+        guard let window = AXWindowAccess.window(withID: windowID, in: application) else {
+            await reportFullScreenFailure(entry,
+                detail: "Tinycast couldn’t identify its Accessibility window before moving it.")
+            return false
+        }
+        if AXWindowAccess.isFullScreen(window) {
+            guard AXWindowAccess.exitFullScreen(window) else {
+                await reportFullScreenFailure(entry,
+                    detail: "This app didn’t allow Tinycast to exit full screen.")
+                return false
+            }
+        } else {
+            let spaces = TCWindowSpaceIDs(windowID) ?? []
+            guard !spaces.isEmpty, spaces.allSatisfy({ TCSpaceType($0.uint64Value) == 0 })
+            else {
+                await reportFullScreenFailure(entry,
+                    detail: "Tinycast couldn’t verify this window’s full-screen state.")
+                return false
+            }
+        }
+
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(5))
+        while clock.now < deadline {
+            guard !Task.isCancelled else { return false }
+            let spaces = TCWindowSpaceIDs(windowID) ?? []
+            if !spaces.isEmpty, spaces.allSatisfy({ TCSpaceType($0.uint64Value) == 0 }),
+                let settled = AXWindowAccess.window(withID: windowID, in: application),
+                !AXWindowAccess.isFullScreen(settled)
+            {
+                guard (try? await WindowSummonInventory.contains(target)) == true else {
+                    await reportGone(entry)
+                    return false
+                }
+                return true
+            }
+            do { try await Task.sleep(for: .milliseconds(150)) } catch { return false }
+        }
+        await reportFullScreenFailure(entry,
+            detail: "The window didn’t settle in a desktop Space after leaving full screen.")
+        return false
+    }
+
     private func reportPartial(_ entry: WindowSwitchEntry, moved: Bool, detail: String) async {
         await core.showNotice(
             title: moved ? "Window Moved" : "Couldn’t Focus Window",
@@ -224,6 +290,19 @@ final class WindowSummonCoordinator {
                 ? "“\(entry.displayTitle)” moved to this Space, but \(detail)."
                 : "“\(entry.displayTitle)” is in this Space, but \(detail).",
             symbol: "macwindow.on.rectangle", tone: .neutral)
+    }
+
+    private func reportDestinationFailure() async {
+        await core.showNotice(
+            title: "Can’t Summon Into This Space",
+            message: "Tinycast couldn’t verify a desktop Space here. Switch to one and try again.",
+            symbol: "macwindow.on.rectangle", tone: .danger)
+    }
+
+    private func reportFullScreenFailure(_ entry: WindowSwitchEntry, detail: String) async {
+        await core.showNotice(
+            title: "Couldn’t Summon “\(entry.displayTitle)”",
+            message: detail, symbol: "macwindow.on.rectangle", tone: .danger)
     }
 
     private func reportAccessibilityFailure() async {
