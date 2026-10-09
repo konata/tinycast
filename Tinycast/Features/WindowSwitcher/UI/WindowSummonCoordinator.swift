@@ -136,7 +136,8 @@ final class WindowSummonCoordinator {
             await reportGone(entry)
             return
         }
-        if !TCWindowIsInSpace(windowID, spaceID) {
+        let moved = !TCWindowIsInSpace(windowID, spaceID)
+        if moved {
             // A second move can be ignored while the previous Space transition settles.
             for attempt in 0..<2 {
                 if attempt > 0 {
@@ -169,33 +170,39 @@ final class WindowSummonCoordinator {
             await reportGone(entry)
             return
         }
-        let application = AXWindowAccess.application(for: target.app.processIdentifier)
+        if target.app.isHidden { _ = target.app.unhide() }
+        let application = AXWindowAccess.application(for: target.app.processIdentifier, timeout: 0.2)
+        let clock = ContinuousClock()
+        let deadline = clock.now.advanced(by: .seconds(2))
         var found: AXUIElement?
-        for _ in 0..<4 {
+        while found == nil {
             found = AXWindowAccess.window(withID: windowID, in: application)
-            if found != nil { break }
-            try? await Task.sleep(for: .milliseconds(150))
+            if found != nil || clock.now >= deadline { break }
+            do { try await Task.sleep(for: .milliseconds(200)) } catch { return }
         }
         guard let window = found else {
-            await reportPartial(entry, detail: "Tinycast couldn’t find its Accessibility window")
+            await reportPartial(entry, moved: moved,
+                detail: "Tinycast couldn’t find its Accessibility window")
             return
         }
         if AXWindowAccess.bool(window, kAXMinimizedAttribute) == true {
             _ = AXWindowAccess.unminimize(window)
         }
         guard let frame = AXWindowAccess.frame(of: window) else {
-            await reportPartial(entry, detail: "its position couldn’t be verified")
+            await reportPartial(entry, moved: moved, detail: "its position couldn’t be verified")
             return
         }
         if !canvas.contains(frame) {
             let landing = WindowPlacementEngine.clamped(frame, into: canvas)
             guard AXWindowAccess.setPosition(landing.origin, on: window) else {
-                await reportPartial(entry, detail: "it couldn’t be placed on this display")
+                await reportPartial(entry, moved: moved,
+                    detail: "it couldn’t be placed on this display")
                 return
             }
         }
         guard let placed = AXWindowAccess.frame(of: window), placed.intersects(canvas) else {
-            await reportPartial(entry, detail: "its display position couldn’t be verified")
+            await reportPartial(entry, moved: moved,
+                detail: "its display position couldn’t be verified")
             return
         }
         AXWindowAccess.focus(window, in: application, of: target.app)
@@ -207,13 +214,15 @@ final class WindowSummonCoordinator {
             { return }
             try? await Task.sleep(for: .milliseconds(150))
         }
-        await reportPartial(entry, detail: "Tinycast couldn’t confirm focus")
+        await reportPartial(entry, moved: moved, detail: "Tinycast couldn’t confirm focus")
     }
 
-    private func reportPartial(_ entry: WindowSwitchEntry, detail: String) async {
+    private func reportPartial(_ entry: WindowSwitchEntry, moved: Bool, detail: String) async {
         await core.showNotice(
-            title: "Window Moved",
-            message: "“\(entry.displayTitle)” moved to this Space, but \(detail).",
+            title: moved ? "Window Moved" : "Couldn’t Focus Window",
+            message: moved
+                ? "“\(entry.displayTitle)” moved to this Space, but \(detail)."
+                : "“\(entry.displayTitle)” is in this Space, but \(detail).",
             symbol: "macwindow.on.rectangle", tone: .neutral)
     }
 

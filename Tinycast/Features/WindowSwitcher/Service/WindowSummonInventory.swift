@@ -44,6 +44,9 @@ enum WindowSummonInventory {
                 !title.isEmpty
             else { continue }
 
+            let spaceIDs = TCWindowSpaceIDs(window.windowID)
+            guard spaceIDs?.isEmpty != true else { continue }
+
             let handle = entries.count
             let iconURL = app.bundleURL
             entries.append(WindowSwitchEntry(
@@ -52,7 +55,7 @@ enum WindowSummonInventory {
                 iconURL: iconURL, iconStamp: iconURL.map(FileIconStamp.value(for:)) ?? 0,
                 title: title, isMinimized: false, appRank: ranks[owner.processID] ?? .max))
             targets[handle] = Target(app: app, windowID: window.windowID)
-            locations[handle] = (TCWindowSpaceIDs(window.windowID) ?? []).map {
+            locations[handle] = (spaceIDs ?? []).map {
                 WindowSummonLocation(spaceID: $0.uint64Value, screenID: screenIDs[$0]?.uint32Value)
             }.sorted { $0.spaceID < $1.spaceID }
         }

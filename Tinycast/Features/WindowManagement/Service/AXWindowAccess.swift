@@ -42,10 +42,15 @@ enum AXWindowAccess {
     }
 
     static func window(withID windowID: CGWindowID, in application: AXUIElement) -> AXUIElement? {
-        windows(in: application).first { window in
+        func hasID(_ window: AXUIElement) -> Bool {
             AXUIElementSetMessagingTimeout(window, 0.2)
             return TCWindowIDForAXElement(window) == windowID
         }
+        if let window = windows(in: application).first(where: hasID) { return window }
+        for attribute in [kAXFocusedWindowAttribute, kAXMainWindowAttribute] {
+            if let window = element(application, attribute), hasID(window) { return window }
+        }
+        return nil
     }
 
     /// A real, restorable window: not a sheet, popover or minimized one, and it reports geometry.

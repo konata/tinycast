@@ -33,6 +33,8 @@ the launcher and their still-recorded shortcuts do nothing.
 - **Summon Window selects by `CGWindowID`.** Its list comes from ScreenCaptureKit, not the AX sweep;
   the AX element is matched by ID only after macOS moves the selected window. Matching titles would
   pick the wrong window when an app has two documents with the same name.
+- **A missing AX match before a move is not a filter.** Other Spaces can hide real windows from the
+  app's AX list; a successful Space lookup with no membership is the scan's exclusion instead.
 - **The destination is the palette's display at ↵.** The panel joins all Spaces and may be dragged,
   so its own window ID and its initial placement cannot identify the destination Space.
 - **Summon Window puts the destination Space last.** It partitions before fuzzy ranking and the
@@ -105,16 +107,17 @@ window's app quit between the sweep and the ↵.
 
 `WindowSummonInventory` asks `SCShareableContent` for off-screen windows as well as on-screen ones.
 It keeps layer-zero windows with a nonempty title, a positive frame and a live owning application;
-it does not apply `WindowInventory.candidates()`'s regular-app restriction. The palette reuses the
+it omits windows whose Space lookup succeeds with no membership, and does not apply
+`WindowInventory.candidates()`'s regular-app restriction. The palette reuses the
 switcher's row, base sort and fuzzy scorer, but stores `handle → (CGWindowID, app)` separately. Empty
 titles are excluded because ScreenCaptureKit also returns many untitled helper surfaces, and a title
 is what this command asks the user to choose.
 
 Each row ends with `Space ID @ Screen ID`, after the app name. The Space IDs come from
 `SLSCopySpacesForWindows`; `SLSCopyManagedDisplaySpaces` maps them to numeric `CGDirectDisplayID`s.
-A window in several Spaces lists each pair. Some hidden windows have no reported Space; they remain
-selectable and show `? @ ?`, rather than a guessed location. Remote windows rank first, unknown
-locations next, and windows in the palette display's current Space last, even for a typed query.
+A window in several Spaces lists each pair. A failed Space lookup remains selectable and shows
+`? @ ?`; a successful empty result is excluded. Remote windows rank first, unknown locations next,
+and windows in the palette display's current Space last, even for a typed query.
 Dragging the palette to another display or changing that display's active Space re-evaluates the
 destination and list order.
 
@@ -131,9 +134,10 @@ the prior app's focus. Before each move attempt, a fresh ScreenCaptureKit listin
 selected `CGWindowID` still belongs to its app, including when it is on another Space.
 `SLSBridgedMoveWindowsToManagedSpaceOperation` then moves that ID. The WindowServer updates Space
 membership after the call returns, so the coordinator checks for up to two seconds before claiming
-success. It resolves the same ID against that app's AX windows, unminimizes if needed, verifies or
-corrects its position on the target display, and focuses it. If the AX element or final focus cannot
-be confirmed, the Space move still stands and a notice says which step was incomplete.
+success. It unhides a hidden app, then waits up to two seconds for the same ID in its AX windows,
+focused window or main window. It unminimizes if needed, verifies or corrects the position on the
+target display, and focuses it. If AX or final focus cannot be confirmed, a notice distinguishes an
+actual Space move from a window that was already there.
 
 SkyLight's move operation and `_AXUIElementGetWindow` are private macOS interfaces, looked up at
 runtime by the small Objective-C bridge. On macOS 26.6.1, a disposable window moved from a second
@@ -191,3 +195,7 @@ The platform paths are not compiled into the harness and need manual verificatio
 8. Summon rows show the correct Space and numeric display IDs; dragging the palette to the other
    display moves that display's current Space to the end of the results.
 9. With Summon open, switch Spaces on the palette's display; that Space moves to the end.
+10. A titled window with a confirmed empty Space membership is absent from Summon;
+    a Space lookup failure still shows `? @ ?`.
+11. A hidden app's window is unhidden after its Space move and matched by exact AX window ID;
+    a window already in the destination never reports that it was moved.
