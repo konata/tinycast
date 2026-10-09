@@ -15,7 +15,7 @@ The mechanical bar, in one place so it cannot drift. All five pass before a chan
 | A clean build | `xcodebuild … -configuration Debug CODE_SIGNING_ALLOWED=NO`, zero **new** warnings |
 | Docs still true | any doc your change made wrong, fixed in the same commit |
 
-The Verify workflow runs the harnesses, lint and Debug build on `codex/**` pushes and pull requests.
+The Verify workflow runs the harnesses, lint and Debug build on `main` and `codex/**` pushes and pull requests.
 The purity check, documentation review and manual sweep remain yours to check. Each is expanded
 below; the manual sweep at the end of this file is the sixth, judged by what you touched.
 
@@ -46,7 +46,7 @@ scrypt at `-Onone` and one second at `-O`. `slow` dispatches it in the first wav
 harnesses are not still running after everything else has finished.
 
 The script is the **only** place the harness set is written down. Run it while iterating; Verify runs it
-again on `codex/**` pushes and pull requests. Adding a harness means adding one `run` line.
+again on `main` and `codex/**` pushes and pull requests. Adding a harness means adding one `run` line.
 
 Each harness compiles the **shipped sources** it guards rather than a copy of them, which is what makes
 the pure-layer boundary real: a harness that stops *compiling* means AppKit or SwiftUI has leaked into a
