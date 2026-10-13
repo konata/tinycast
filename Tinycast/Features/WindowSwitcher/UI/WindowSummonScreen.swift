@@ -30,7 +30,7 @@ struct WindowSummonScreen: PaletteScreen {
                 selectedID: rows.indices.contains(selection) ? rows[selection].id : nil,
                 scroll: scroll,
                 onActivate: { core.windowSummonCoordinator.activate($0) },
-                places: session.labels)
+                places: session.labels, currentHandles: session.currentHandles)
         }
     }
 }

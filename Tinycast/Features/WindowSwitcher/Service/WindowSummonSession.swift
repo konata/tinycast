@@ -13,8 +13,15 @@ final class WindowSummonSession {
         locations.mapValues(WindowSummonLocation.summary)
     }
 
+    var currentHandles: Set<Int> {
+        guard currentSpaceID != 0 else { return [] }
+        return Set(locations.compactMap { handle, places in
+            places.contains { $0.spaceID == currentSpaceID } ? handle : nil
+        })
+    }
+
     private var query = ""
-    @ObservationIgnored private var currentSpaceID: UInt64 = 0
+    private var currentSpaceID: UInt64 = 0
     @ObservationIgnored private var targets: [Int: WindowSummonInventory.Target] = [:]
     @ObservationIgnored private var scan: Task<Void, Never>?
 

@@ -8,6 +8,7 @@ struct WindowSwitchList: View {
     let scroll: ScrollIntent
     let onActivate: (WindowSwitchEntry) -> Void
     var places: [Int: String] = [:]
+    var currentHandles: Set<Int> = []
 
     private var firstRowSelected: Bool {
         selectedID != nil && selectedID == entries.first?.id
@@ -20,7 +21,7 @@ struct WindowSwitchList: View {
                     ForEach(entries) { entry in
                         WindowSwitchRow(
                             entry: entry, selected: entry.id == selectedID,
-                            place: places[entry.handle])
+                            place: places[entry.handle], current: currentHandles.contains(entry.handle))
                             .selectionFrame(entry.id == selectedID)
                             .contentShape(Rectangle())
                             .onTapGesture { onActivate(entry) }
@@ -45,12 +46,18 @@ private struct WindowSwitchRow: View {
     let entry: WindowSwitchEntry
     let selected: Bool
     let place: String?
+    let current: Bool
     @State private var hovered = false
 
     private var fill: Color {
         if selected { return Theme.Colors.selection }
         if hovered { return Theme.Colors.rowHover }
         return .clear
+    }
+
+    private var titleStyle: AnyShapeStyle {
+        if current { return AnyShapeStyle(Theme.Colors.currentSpaceTitle) }
+        return entry.isMinimized ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary)
     }
 
     private var owner: String {
@@ -72,7 +79,7 @@ private struct WindowSwitchRow: View {
             .opacity(entry.isMinimized ? 0.5 : 1)
             Text(entry.displayTitle)
                 .font(metrics.typography.rowTitle)
-                .foregroundStyle(entry.isMinimized ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                .foregroundStyle(titleStyle)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: metrics.spacing.md)

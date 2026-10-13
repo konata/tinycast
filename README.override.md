@@ -23,3 +23,13 @@ This file tracks user-requested features added to the fork. Keep one entry per f
 **Limits.** The move and AX-to-window-ID APIs are private. A failed Space lookup can still show `? @ ?`, and AX matching or focus can fail after a confirmed move. Listing a row does not guarantee a complete move-and-focus result.
 
 **Code.** `Tinycast/Features/WindowSwitcher/Service/WindowSummonInventory.swift`, `Tinycast/Platform/WindowSystemBridge.m`, `Tinycast/Features/WindowSwitcher/Model/WindowSummonLocation.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSummonCoordinator.swift`, `Tinycast/Features/Settings/Panes/NavigationSettingsView.swift`.
+
+## 3. Highlight current-Space window titles in Summon Window
+
+**Requirement.** In Summon Window, show the central window title in blue when the window belongs to the palette display's current Space, including minimized windows. Keep other title colors, icons, trailing labels, selection styles, ordering, activation, and Switch Windows unchanged.
+
+**Implementation.** `WindowSummonSession` derives current-Space handles from the inventory's Space memberships and an observable destination. `WindowSummonScreen` supplies them to `WindowSwitchList`, which applies `Theme.Colors.currentSpaceTitle` only to matching titles. Existing `TCCurrentManagedSpace` destination refreshes on display moves and `NSWorkspace.activeSpaceDidChangeNotification` update the title colors. The token uses appearance-aware `NSColor.systemBlue` rather than the configurable accent color.
+
+**Limits.** Current Space means the active Space on the palette's display, not every display's active Space. Membership comes from the listing snapshot; externally moved windows may keep their old color until a fresh scan. A failed destination lookup marks no titles blue. Blue indicates membership, not a guaranteed move-and-focus result.
+
+**Code.** `Tinycast/Features/WindowSwitcher/Service/WindowSummonSession.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSummonScreen.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSwitchList.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSummonCoordinator.swift`, `Tinycast/DesignSystem/Theme.swift`.

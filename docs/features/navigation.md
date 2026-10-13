@@ -125,8 +125,11 @@ actually listed each window; `SLSCopySpacesForWindows` fills any missing members
 A window in several Spaces lists each pair. A failed Space lookup remains selectable and shows
 `? @ ?`; a successful empty result is excluded. Remote windows rank first, unknown locations next,
 and windows in the palette display's current Space last, even for a typed query.
+Those windows' titles are blue, including minimized windows; icons, trailing labels and backgrounds
+keep their existing styles. `WindowSummonSession` derives the current handles from the scan's Space
+memberships and an observable destination; only `WindowSummonScreen` supplies them to the shared list.
 Dragging the palette to another display or changing that display's active Space re-evaluates the
-destination and list order.
+destination, list order and title colors.
 
 ScreenCaptureKit needs **Screen Recording** for other apps' titles. Summon Window checks that grant and
 Accessibility when opening and again on ↵; a missing grant prompts and offers the relevant System
@@ -206,8 +209,9 @@ The platform paths are not compiled into the harness and need manual verificatio
 6. After dragging the palette to a different display, ↵ uses that display as the destination.
 7. Revoking Screen Recording or Accessibility while the list is open reports the missing grant.
 8. Summon rows show the correct Space and numeric display IDs; dragging the palette to the other
-   display moves that display's current Space to the end of the results.
-9. With Summon open, switch Spaces on the palette's display; that Space moves to the end.
+   display moves that display's current Space to the end of the results and makes only those titles blue.
+9. With Summon open, switch Spaces on the palette's display; that Space moves to the end and its
+   titles turn blue. Check minimized titles too, both appearances, and unchanged Switch Windows colors.
 10. A titled window with a confirmed empty Space membership is absent from Summon;
     a Space lookup failure still shows `? @ ?`.
 11. Hidden apps are absent; normal, minimized and full-screen windows in other Spaces appear, and
