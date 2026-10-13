@@ -2,8 +2,6 @@ name: Personal build
 
 # 个人构建:默认出正式通道(替换日常版,继承现有配置),可选 Dev 通道。
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
     inputs:
       channel:
