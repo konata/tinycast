@@ -10,6 +10,13 @@ on:
         options: [stable, dev]
         default: stable
 
+env:
+  VERSION: 0.10.24-konata
+
+concurrency:
+  group: personal-${{ inputs.channel }}
+  cancel-in-progress: false
+
 jobs:
   build:
     runs-on: macos-26
@@ -17,6 +24,20 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+
+      - name: Resolve release version
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$CHANNEL" = "dev" ]; then
+            VERSION="${VERSION}-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Release v${VERSION} already exists. Bump VERSION before publishing again."
+            exit 1
+          fi
 
       - name: Select Xcode 26
         run: |
@@ -54,7 +75,7 @@ jobs:
               CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
               OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
               PRODUCT_NAME=Tinycast PRODUCT_BUNDLE_IDENTIFIER=com.tinycast.app \
-              MARKETING_VERSION="0.10.23-konata" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+              MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
               build 2>&1 | tail -40
           else
             xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
@@ -62,6 +83,7 @@ jobs:
               ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
               CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
               OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+              MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
               build 2>&1 | tail -40
           fi
 
@@ -77,26 +99,24 @@ jobs:
           echo "APP=$(basename "$APP")"
           ./Scripts/verify-signature.sh "$APP"
           mkdir -p dist
-          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/personal-${CHANNEL}.zip"
+          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/Tinycast-${VERSION}.zip"
 
       - uses: actions/upload-artifact@v7
         with:
-          name: tinycast-personal-${{ github.event.inputs.channel || 'stable' }}
+          name: Tinycast-${{ env.VERSION }}
           path: dist/
 
-      # Rolling release per channel so the download URL stays fixed:
-      # releases/download/personal-stable/personal-stable.zip
-      - name: Publish to rolling release
+      - name: Publish versioned release
         env:
-          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+          CHANNEL: ${{ inputs.channel }}
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="personal-${CHANNEL}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/*.zip --clobber
-          else
-            gh release create "$TAG" dist/*.zip \
-              --title "Personal ${CHANNEL}" \
-              --notes "Auto build ${GITHUB_RUN_NUMBER} from ${GITHUB_SHA::7}" \
-              --prerelease
+          FLAGS=(--latest)
+          if [ "$CHANNEL" = "dev" ]; then
+            FLAGS=(--prerelease --latest=false)
           fi
+          gh release create "v${VERSION}" "dist/Tinycast-${VERSION}.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Tinycast ${VERSION}" \
+            --notes "Personal ${CHANNEL} build for macOS 26+ (Apple silicon). Built from ${GITHUB_SHA}. Download and unzip Tinycast-${VERSION}.zip. This build uses the fork's self-signed certificate; macOS may require removing the quarantine attribute before opening it." \
+            "${FLAGS[@]}"

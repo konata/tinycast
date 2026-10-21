@@ -33,3 +33,11 @@ This file tracks user-requested features added to the fork. Keep one entry per f
 **Limits.** Current Space means the active Space on the palette's display, not every display's active Space. Membership comes from the listing snapshot; externally moved windows may keep their old color until a fresh scan. A failed destination lookup marks no titles blue. Blue indicates membership, not a guaranteed move-and-focus result.
 
 **Code.** `Tinycast/Features/WindowSwitcher/Service/WindowSummonSession.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSummonScreen.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSwitchList.swift`, `Tinycast/Features/WindowSwitcher/UI/WindowSummonCoordinator.swift`, `Tinycast/DesignSystem/Theme.swift`.
+
+## 4. Versioned downloadable fork releases
+
+**Requirement.** Increase the fork version and publish the current code through GitHub Actions, with downloadable releases and retained history.
+
+**Implementation.** `.github/workflows/personal.yml` owns the personal build's `VERSION` (currently `0.10.24-konata`) and passes it as `MARKETING_VERSION`, with `github.run_number` as `CURRENT_PROJECT_VERSION`. Manual Personal build runs package the signed app using `ditto`, then use `gh release create --target` to publish `v<version>` with `Tinycast-<version>.zip`. Stable releases are marked Latest; Dev builds append `-dev.<run number>` and remain prereleases. Existing versioned releases are rejected rather than overwritten; bump `VERSION` for the next stable release. The old rolling release is retained.
+
+**Limits.** Personal builds target Apple silicon and macOS 26+, use a self-signed certificate, and may need quarantine removal after downloading. Fork tags are intended for manual downloads; this does not configure the in-app updater to use this fork. Compilation and validation run in manually dispatched GitHub Actions workflows.
