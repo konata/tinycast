@@ -50,91 +50,142 @@ struct RootPaletteView: View {
 
     private var screen: any PaletteScreen {
         switch vm.mode {
-        case .launcher:
-            return LauncherScreen(
-                appIndex: appIndex, favorites: favorites, visibility: visibility,
-                currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
-                meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
-                openActions: openActions, openArgumentOptions: openArgumentOptions,
-                scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
-        case .uninstall:
-            return UninstallScreen(
-                session: uninstall, core: core, vm: vm, openActions: openActions)
-        case .quicklinks:
-            return QuicklinkListScreen(
-                store: quicklinks, core: core, vm: vm, openActions: openActions,
-                openArgumentOptions: openArgumentOptions)
-        case .quicklinkEditor:
-            return QuicklinkEditorScreen(
-                coordinator: core.quicklinkCoordinator, openMenuCorner: menuCorner,
-                openInputMenu: openInputOptions)
-        case .snippets:
-            return SnippetsScreen(
-                store: snippets, core: core, vm: vm, openActions: openActions)
-        case .snippetEditor:
-            return SnippetEditorScreen(
-                coordinator: core.snippetCoordinator, openInputMenu: openInputOptions)
-        case .emoji:
-            return EmojiScreen(
-                index: emojiIndex, frequent: frequentEmoji, pinned: core.pinnedEmoji, core: core, vm: vm,
-                tone: settings.emojiSkinTone, defaultColumns: settings.emojiGridColumns,
-                openActions: openActions)
-        case .fileSearch:
-            return FileSearchScreen(
-                session: fileSearch, core: core, vm: vm, openActions: openActions)
-        case .menuSearch:
-            return MenuSearchScreen(
-                session: menuSearch, core: core, vm: vm, openActions: openActions)
-        case .switchWindows:
-            return WindowSwitchScreen(session: windowSwitch, core: core)
-        case .summonWindows:
-            return summonScreen()
-        case .rooms:
-            return RoomsScreen(coordinator: core.roomCoordinator, session: core.roomSession, vm: vm)
-        case .roomWindows:
-            return RoomPickerScreen(
-                coordinator: core.roomCoordinator, session: core.roomSession, vm: vm)
-        case .schedule:
-            return ScheduleScreen(
-                store: calendarStore, clock: meetingClock, core: core, vm: vm,
-                openActions: openActions)
-        case .eventEditor:
-            return EventEditorScreen(
-                coordinator: core.calendarCoordinator, openMenuCorner: menuCorner,
-                openInputMenu: openInputOptions)
-        case .customCommandEditor:
-            return CustomCommandEditorScreen(
-                coordinator: core.customCommandCoordinator, openMenuCorner: menuCorner,
-                openInputMenu: openInputOptions)
-        case .customCommands:
-            return CustomCommandListScreen(
-                store: core.customCommands, coordinator: core.customCommandCoordinator,
-                vm: vm, metrics: metrics, openActions: openActions)
-        case .meetingDetails:
-            return MeetingDetailsScreen(store: calendarStore, core: core)
-        case .clipboard:
-            return ClipboardScreen(
-                store: store, core: core, vm: vm, openActions: openActions,
-                scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
-        case .ai:
-            return AIScreen(
-                vm: vm, metrics: metrics, chat: quickAI,
-                coordinator: core.quickAICoordinator, chatCoordinator: core.aiChatCoordinator,
-                openAttachments: toggleAIAttachments)
-        case .aiHistory:
-            return ChatHistoryScreen(
-                history: core.chatHistory, chat: quickAI, coordinator: core.quickAICoordinator,
-                vm: vm, openActions: openActions, metrics: metrics)
-        case .dictionary:
-            return DictionaryScreen(session: dictionary, core: core, vm: vm)
-        case .calculatorHistory:
-            return CalculatorHistoryScreen(
-                history: calcHistory, currencyRates: currencyRates, core: core, vm: vm,
-                openActions: openActions)
-        case .extensionCommand:
-            return ExtensionCommandScreen(
-                screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)
+        case .launcher: return launcherScreen()
+        case .uninstall: return uninstallScreen()
+        case .quicklinks: return quicklinksScreen()
+        case .quicklinkEditor: return quicklinkEditorScreen()
+        case .snippets: return snippetsScreen()
+        case .snippetEditor: return snippetEditorScreen()
+        case .emoji: return emojiScreen()
+        case .fileSearch: return fileSearchScreen()
+        case .menuSearch: return menuSearchScreen()
+        case .switchWindows: return WindowSwitchScreen(session: windowSwitch, core: core)
+        case .summonWindows: return summonScreen()
+        case .rooms: return roomsScreen()
+        case .roomWindows: return roomWindowsScreen()
+        case .schedule: return scheduleScreen()
+        case .eventEditor: return eventEditorScreen()
+        case .customCommandEditor: return customCommandEditorScreen()
+        case .customCommands: return customCommandsScreen()
+        case .meetingDetails: return MeetingDetailsScreen(store: calendarStore, core: core)
+        case .clipboard: return clipboardScreen()
+        case .ai: return aiScreen()
+        case .aiHistory: return aiHistoryScreen()
+        case .dictionary: return DictionaryScreen(session: dictionary, core: core, vm: vm)
+        case .calculatorHistory: return calculatorHistoryScreen()
+        case .extensionCommand: return extensionCommandScreen()
         }
+    }
+
+    private func launcherScreen() -> LauncherScreen {
+        LauncherScreen(
+            appIndex: appIndex, favorites: favorites, visibility: visibility,
+            currencyRates: currencyRates, core: core, vm: vm, running: selectionIsRunning,
+            meeting: core.calendarCoordinator.cardedMeeting, now: meetingClock.now,
+            openActions: openActions, openArgumentOptions: openArgumentOptions,
+            scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
+    }
+
+    private func uninstallScreen() -> UninstallScreen {
+        UninstallScreen(session: uninstall, core: core, vm: vm, openActions: openActions)
+    }
+
+    private func quicklinksScreen() -> QuicklinkListScreen {
+        QuicklinkListScreen(
+            store: quicklinks, core: core, vm: vm, openActions: openActions,
+            openArgumentOptions: openArgumentOptions)
+    }
+
+    private func quicklinkEditorScreen() -> QuicklinkEditorScreen {
+        QuicklinkEditorScreen(
+            coordinator: core.quicklinkCoordinator, openMenuCorner: menuCorner,
+            openInputMenu: openInputOptions)
+    }
+
+    private func snippetsScreen() -> SnippetsScreen {
+        SnippetsScreen(store: snippets, core: core, vm: vm, openActions: openActions)
+    }
+
+    private func snippetEditorScreen() -> SnippetEditorScreen {
+        SnippetEditorScreen(
+            coordinator: core.snippetCoordinator, openInputMenu: openInputOptions)
+    }
+
+    private func emojiScreen() -> EmojiScreen {
+        EmojiScreen(
+            index: emojiIndex, frequent: frequentEmoji, pinned: core.pinnedEmoji, core: core, vm: vm,
+            tone: settings.emojiSkinTone, defaultColumns: settings.emojiGridColumns,
+            openActions: openActions)
+    }
+
+    private func fileSearchScreen() -> FileSearchScreen {
+        FileSearchScreen(session: fileSearch, core: core, vm: vm, openActions: openActions)
+    }
+
+    private func menuSearchScreen() -> MenuSearchScreen {
+        MenuSearchScreen(session: menuSearch, core: core, vm: vm, openActions: openActions)
+    }
+
+    private func roomsScreen() -> RoomsScreen {
+        RoomsScreen(coordinator: core.roomCoordinator, session: core.roomSession, vm: vm)
+    }
+
+    private func roomWindowsScreen() -> RoomPickerScreen {
+        RoomPickerScreen(coordinator: core.roomCoordinator, session: core.roomSession, vm: vm)
+    }
+
+    private func scheduleScreen() -> ScheduleScreen {
+        ScheduleScreen(
+            store: calendarStore, clock: meetingClock, core: core, vm: vm,
+            openActions: openActions)
+    }
+
+    private func eventEditorScreen() -> EventEditorScreen {
+        EventEditorScreen(
+            coordinator: core.calendarCoordinator, openMenuCorner: menuCorner,
+            openInputMenu: openInputOptions)
+    }
+
+    private func customCommandEditorScreen() -> CustomCommandEditorScreen {
+        CustomCommandEditorScreen(
+            coordinator: core.customCommandCoordinator, openMenuCorner: menuCorner,
+            openInputMenu: openInputOptions)
+    }
+
+    private func customCommandsScreen() -> CustomCommandListScreen {
+        CustomCommandListScreen(
+            store: core.customCommands, coordinator: core.customCommandCoordinator,
+            vm: vm, metrics: metrics, openActions: openActions)
+    }
+
+    private func clipboardScreen() -> ClipboardScreen {
+        ClipboardScreen(
+            store: store, core: core, vm: vm, openActions: openActions,
+            scrollToFollow: { scroll = ScrollIntent(kind: .follow) })
+    }
+
+    private func aiScreen() -> AIScreen {
+        AIScreen(
+            vm: vm, metrics: metrics, chat: quickAI,
+            coordinator: core.quickAICoordinator, chatCoordinator: core.aiChatCoordinator,
+            openAttachments: toggleAIAttachments)
+    }
+
+    private func aiHistoryScreen() -> ChatHistoryScreen {
+        ChatHistoryScreen(
+            history: core.chatHistory, chat: quickAI, coordinator: core.quickAICoordinator,
+            vm: vm, openActions: openActions, metrics: metrics)
+    }
+
+    private func calculatorHistoryScreen() -> CalculatorHistoryScreen {
+        CalculatorHistoryScreen(
+            history: calcHistory, currencyRates: currencyRates, core: core, vm: vm,
+            openActions: openActions)
+    }
+
+    private func extensionCommandScreen() -> ExtensionCommandScreen {
+        ExtensionCommandScreen(
+            screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)
     }
 
     private var extensionScreen: ExtensionScreen {
