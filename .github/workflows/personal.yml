@@ -11,7 +11,7 @@ on:
         default: stable
 
 env:
-  VERSION: 0.12.3-konata
+  VERSION: 0.12.3-konata.1
 
 concurrency:
   group: personal-${{ inputs.channel }}
@@ -74,7 +74,7 @@ jobs:
               ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
               CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
               OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
-              PRODUCT_NAME=Tinycast PRODUCT_BUNDLE_IDENTIFIER=com.tinycast.app \
+              PRODUCT_NAME=Tinycast TINYCAST_BUNDLE_IDENTIFIER=com.tinycast.app \
               MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
               build 2>&1 | tail -40
           else
