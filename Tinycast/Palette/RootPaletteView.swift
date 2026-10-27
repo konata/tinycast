@@ -488,6 +488,11 @@ struct RootPaletteView: View {
     /// Split from `body` for the same reason `keyHandlers` is: one chain cannot carry them all.
     @ViewBuilder
     private func stateObservers(_ content: some View) -> some View {
+        presentationObservers(queryObservers(content))
+    }
+
+    @ViewBuilder
+    private func queryObservers(_ content: some View) -> some View {
         emojiObservers(content)
             // Every show bumps focusToken so the search field refocuses.
             .onChange(of: vm.focusToken) {
@@ -532,6 +537,11 @@ struct RootPaletteView: View {
                 fileSearch.search(vm.query, filter: vm.fileSearchFilter)
             }
             .onChange(of: vm.mode) { handleModeChange() }
+    }
+
+    @ViewBuilder
+    private func presentationObservers(_ content: some View) -> some View {
+        content
             // `prepare` may change nothing else, so this still lands the list as freshly opened.
             .onChange(of: vm.resetToken) {
                 if menuOpen { closeMenus() }
