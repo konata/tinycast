@@ -73,7 +73,7 @@ struct RootPaletteView: View {
         case .aiHistory: return aiHistoryScreen()
         case .dictionary: return DictionaryScreen(session: dictionary, core: core, vm: vm)
         case .calculatorHistory: return calculatorHistoryScreen()
-        case .extensionCommand: return extensionCommandScreen()
+        case .extensionCommand: return makeExtensionCommandScreen()
         }
     }
 
@@ -183,7 +183,7 @@ struct RootPaletteView: View {
             openActions: openActions)
     }
 
-    private func extensionCommandScreen() -> ExtensionCommandScreen {
+    private func makeExtensionCommandScreen() -> ExtensionCommandScreen {
         ExtensionCommandScreen(
             screen: extensionScreen, extensions: extensions, vm: vm, openActions: openActions)
     }
