@@ -223,6 +223,11 @@ struct RootPaletteView: View {
         WindowSummonScreen(session: windowSummon, core: core)
     }
 
+    private func moveFieldEditorCaretToEnd() {
+        // Next turn, past the refocus that selects all, so typing extends the answer.
+        Task { @MainActor in (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd() }
+    }
+
     // MARK: - Popover menu content
 
     /// The clipboard type filter's rows; activating one is the only way the filter changes.
@@ -535,8 +540,7 @@ struct RootPaletteView: View {
             .onChange(of: vm.queryRewriteToken) {
                 if menuOpen { closeMenus() }
                 searchFocused = true
-                // Next turn, past the refocus that selects all, so typing extends the answer.
-                Task { @MainActor in (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd() }
+                moveFieldEditorCaretToEnd()
             }
             .onChange(of: vm.favoriteSlotToken) {
                 if let index = vm.favoriteSlotIndex { performShortcut(.favoriteSlot(index)) }
