@@ -228,6 +228,43 @@ struct RootPaletteView: View {
         Task { @MainActor in (hostWindow as? PalettePanel)?.moveFieldEditorCaretToEnd() }
     }
 
+    private func handleModeChange() {
+        vm.clipboardFilter = .all
+        vm.fileSearchFilter = .all
+        vm.emojiCategoryFilter = .all
+        vm.emojiGridColumnsOverride = nil
+        if menuOpen { closeMenus() }
+        land(restoringSelection: true)
+        searchFocused = !screen.hidesSearchField
+        if vm.mode != .uninstall { uninstall.cancel() }
+        // Entering with no query is the blank screen's own request for recents.
+        if vm.mode == .fileSearch {
+            fileSearch.search(vm.query, filter: vm.fileSearchFilter)
+        } else if vm.mode == .launcher {
+            core.fileSearchCoordinator.searchFromLauncher(vm.query)
+        } else {
+            fileSearch.cancel()
+        }
+        if vm.mode == .dictionary {
+            dictionary.lookUp(vm.query)
+        } else {
+            dictionary.reset()
+        }
+        if vm.mode != .menuSearch { menuSearch.reset() }
+        if vm.mode != .switchWindows { windowSwitch.reset() }
+        if vm.mode == .summonWindows {
+            core.windowSummonCoordinator.scanIfNeeded()
+        } else {
+            windowSummon.reset()
+        }
+        if vm.mode != .meetingDetails { calendarStore.clearDetails() }
+        if vm.mode != .rooms, vm.mode != .roomWindows { core.roomCoordinator.screensDidClose() }
+        // Leaving the screen any other way than Escape still ends the command's session.
+        if vm.mode != .extensionCommand, extensions.running != nil {
+            Task { await extensions.stop() }
+        }
+    }
+
     // MARK: - Popover menu content
 
     /// The clipboard type filter's rows; activating one is the only way the filter changes.
@@ -494,42 +531,7 @@ struct RootPaletteView: View {
                 land()
                 fileSearch.search(vm.query, filter: vm.fileSearchFilter)
             }
-            .onChange(of: vm.mode) {
-                vm.clipboardFilter = .all
-                vm.fileSearchFilter = .all
-                vm.emojiCategoryFilter = .all
-                vm.emojiGridColumnsOverride = nil
-                if menuOpen { closeMenus() }
-                land(restoringSelection: true)
-                searchFocused = !screen.hidesSearchField
-                if vm.mode != .uninstall { uninstall.cancel() }
-                // Entering with no query is the blank screen's own request for recents.
-                if vm.mode == .fileSearch {
-                    fileSearch.search(vm.query, filter: vm.fileSearchFilter)
-                } else if vm.mode == .launcher {
-                    core.fileSearchCoordinator.searchFromLauncher(vm.query)
-                } else {
-                    fileSearch.cancel()
-                }
-                if vm.mode == .dictionary {
-                    dictionary.lookUp(vm.query)
-                } else {
-                    dictionary.reset()
-                }
-                if vm.mode != .menuSearch { menuSearch.reset() }
-                if vm.mode != .switchWindows { windowSwitch.reset() }
-                if vm.mode == .summonWindows {
-                    core.windowSummonCoordinator.scanIfNeeded()
-                } else {
-                    windowSummon.reset()
-                }
-                if vm.mode != .meetingDetails { calendarStore.clearDetails() }
-                if vm.mode != .rooms, vm.mode != .roomWindows { core.roomCoordinator.screensDidClose() }
-                // Leaving the screen any other way than Escape still ends the command's session.
-                if vm.mode != .extensionCommand, extensions.running != nil {
-                    Task { await extensions.stop() }
-                }
-            }
+            .onChange(of: vm.mode) { handleModeChange() }
             // `prepare` may change nothing else, so this still lands the list as freshly opened.
             .onChange(of: vm.resetToken) {
                 if menuOpen { closeMenus() }
