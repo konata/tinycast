@@ -33,15 +33,12 @@ struct HyperKeyEngineTest {
         if failures != 0 { exit(1) }
     }
 
-    static func engine(route: HyperKeyRoute, includesShift: Bool = true) -> HyperKeyEngine {
-        var engine = HyperKeyEngine()
-        engine.route = route
-        engine.includesShift = includesShift
-        return engine
+    static func makeEngine(route: HyperKeyRoute, includesShift: Bool = true) -> HyperKeyEngine {
+        HyperKeyEngine(route: route, includesShift: includesShift)
     }
 
     static func chord(_ route: HyperKeyRoute, includesShift: Bool) {
-        var engine = engine(route: route, includesShift: includesShift)
+        var engine = makeEngine(route: route, includesShift: includesShift)
         let context = "\(route.key) via \(route.tapKeyCode) shift=\(includesShift)"
         let held = route.modifier?.deviceMask ?? 0
         let downFlags = route.modifier == nil ? CGEventFlags.maskSecondaryFn.rawValue : held
@@ -81,7 +78,7 @@ struct HyperKeyEngineTest {
     static func modifierHolds() {
         let route = HyperKeyPhysicalKey.rightCommand.route(secureInputCompatible: false)!
         let rightCommand: UInt64 = 0x10
-        var engine = engine(route: route)
+        var engine = makeEngine(route: route)
         check(
             "a key carrying the device bit is a chord even without a seen press",
             engine.handle(type: .keyDown, keyCode: kVK_ANSI_G, flags: command | rightCommand, at: 0)
@@ -113,7 +110,7 @@ struct HyperKeyEngineTest {
         let route = HyperKeyPhysicalKey.leftShift.route(secureInputCompatible: false)!
         let leftShift: UInt64 = 0x2
         let rightShift: UInt64 = 0x4
-        var engine = engine(route: route, includesShift: false)
+        var engine = makeEngine(route: route, includesShift: false)
         _ = engine.handle(type: .flagsChanged, keyCode: kVK_Shift, flags: shift | leftShift, at: 0)
         let alone = engine.handle(type: .keyDown, keyCode: kVK_ANSI_K, flags: shift | leftShift, at: 0.1)
         if case .rewrite(let flags, _, _) = alone.decision {
@@ -134,14 +131,14 @@ struct HyperKeyEngineTest {
     static func unusedPresses() {
         let route = HyperKeyPhysicalKey.capsLock.route(secureInputCompatible: false)!
         for duration in [0.01, 0.1, 0.8] {
-            var engine = engine(route: route)
+            var engine = makeEngine(route: route)
             _ = engine.handle(type: .keyDown, keyCode: route.tapKeyCode, flags: 0, at: 0)
             let up = engine.handle(type: .keyUp, keyCode: route.tapKeyCode, flags: 0, at: duration)
             check(
                 "an unused press reports its hold of \(duration)",
                 up.effect == .unusedPress(heldFor: duration))
         }
-        var engine = engine(route: route)
+        var engine = makeEngine(route: route)
         _ = engine.handle(type: .keyDown, keyCode: route.tapKeyCode, flags: 0, at: 0)
         check(
             "autorepeat is suppressed",
@@ -158,7 +155,7 @@ struct HyperKeyEngineTest {
                 == HyperKeyEngine.Result(decision: .pass, effect: .unmappedCapsLock))
 
         let compatible = HyperKeyPhysicalKey.capsLock.route(secureInputCompatible: true)!
-        var compatibleEngine = engine(route: compatible)
+        var compatibleEngine = makeEngine(route: compatible)
         _ = compatibleEngine.handle(type: .flagsChanged, keyCode: compatible.tapKeyCode, flags: 0x2000, at: 0)
         check(
             "Secure Input Compatibility still reports an unused press",
@@ -173,7 +170,7 @@ struct HyperKeyEngineTest {
                 .effect == nil)
 
         let modifier = HyperKeyPhysicalKey.rightOption.route(secureInputCompatible: false)!
-        var modifierEngine = engine(route: modifier)
+        var modifierEngine = makeEngine(route: modifier)
         _ = modifierEngine.handle(type: .flagsChanged, keyCode: modifier.tapKeyCode, flags: 0x40, at: 0)
         check(
             "a modifier has no Quick Press",
@@ -218,7 +215,7 @@ struct HyperKeyEngineTest {
 
     static func interruption() {
         let route = HyperKeyPhysicalKey.capsLock.route(secureInputCompatible: false)!
-        var engine = engine(route: route)
+        var engine = makeEngine(route: route)
         _ = engine.handle(type: .keyDown, keyCode: route.tapKeyCode, flags: 0, at: 0)
         check("an F18 interruption needs a synthesized release", engine.reset())
         check("repeated reset emits no extra release", !engine.reset())
@@ -229,7 +226,7 @@ struct HyperKeyEngineTest {
         check("the next press recovers", engine.isActive)
 
         let compatible = HyperKeyPhysicalKey.capsLock.route(secureInputCompatible: true)!
-        var modifierEngine = engine(route: compatible)
+        var modifierEngine = makeEngine(route: compatible)
         _ = modifierEngine.handle(type: .flagsChanged, keyCode: compatible.tapKeyCode, flags: 0x2000, at: 0)
         check("a modifier interruption needs no synthesized release", !modifierEngine.reset())
         let release = modifierEngine.handle(

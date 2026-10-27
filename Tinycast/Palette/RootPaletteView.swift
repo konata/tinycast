@@ -88,7 +88,7 @@ struct RootPaletteView: View {
         case .switchWindows:
             return WindowSwitchScreen(session: windowSwitch, core: core)
         case .summonWindows:
-            return WindowSummonScreen(session: windowSummon, core: core)
+            return summonScreen()
         case .rooms:
             return RoomsScreen(coordinator: core.roomCoordinator, session: core.roomSession, vm: vm)
         case .roomWindows:
@@ -167,6 +167,10 @@ struct RootPaletteView: View {
     }
 
     private var menuOpen: Bool { openMenu != nil }
+
+    private func summonScreen() -> WindowSummonScreen {
+        WindowSummonScreen(session: windowSummon, core: core)
+    }
 
     // MARK: - Popover menu content
 
