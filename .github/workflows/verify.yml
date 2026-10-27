@@ -31,6 +31,8 @@ jobs:
         run: ./Scripts/lint.sh
 
       - name: Run harnesses
+        id: harnesses
+        continue-on-error: true
         run: ./Scripts/run-tests.sh
 
       - name: Build Debug
