@@ -83,6 +83,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: "$(TINYCAST_BUNDLE_IDENTIFIER)"
         INFOPLIST_FILE: Tinycast/Info.plist
         CODE_SIGN_ENTITLEMENTS: Tinycast/Tinycast.entitlements
+        SWIFT_OBJC_BRIDGING_HEADER: Tinycast/Tinycast-Bridging-Header.h
         ASSETCATALOG_COMPILER_APPICON_NAME: tinycast
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
         SWIFT_EMIT_LOC_STRINGS: YES

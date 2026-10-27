@@ -7,6 +7,8 @@ struct WindowSwitchList: View {
     let selectedID: WindowSwitchEntry.ID?
     let scroll: ScrollIntent
     let onActivate: (WindowSwitchEntry) -> Void
+    var places: [Int: String] = [:]
+    var currentHandles: Set<Int> = []
 
     private var firstRowSelected: Bool {
         selectedID != nil && selectedID == entries.first?.id
@@ -17,7 +19,9 @@ struct WindowSwitchList: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(entries) { entry in
-                        WindowSwitchRow(entry: entry, selected: entry.id == selectedID)
+                        WindowSwitchRow(
+                            entry: entry, selected: entry.id == selectedID,
+                            place: places[entry.handle], current: currentHandles.contains(entry.handle))
                             .selectionFrame(entry.id == selectedID)
                             .contentShape(Rectangle())
                             .onTapGesture { onActivate(entry) }
@@ -41,6 +45,8 @@ private struct WindowSwitchRow: View {
     @Environment(\.metrics) private var metrics
     let entry: WindowSwitchEntry
     let selected: Bool
+    let place: String?
+    let current: Bool
     @State private var hovered = false
 
     private var fill: Color {
@@ -49,8 +55,15 @@ private struct WindowSwitchRow: View {
         return .clear
     }
 
-    private var trailing: String {
+    private var owner: String {
         entry.isMinimized ? String(localized: "\(entry.appName) · Minimized") : entry.appName
+    }
+
+    private var trailing: String { place.map { "\(owner) · \($0)" } ?? owner }
+
+    private var titleStyle: AnyShapeStyle {
+        if current { return AnyShapeStyle(Theme.Colors.currentSpaceTitle) }
+        return entry.isMinimized ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary)
     }
 
     var body: some View {
@@ -66,14 +79,21 @@ private struct WindowSwitchRow: View {
             .opacity(entry.isMinimized ? 0.5 : 1)
             Text(entry.displayTitle)
                 .font(metrics.typography.rowTitle)
-                .foregroundStyle(entry.isMinimized ? AnyShapeStyle(.secondary) : AnyShapeStyle(.primary))
+                .foregroundStyle(titleStyle)
                 .lineLimit(1)
                 .truncationMode(.middle)
             Spacer(minLength: metrics.spacing.md)
-            Text(trailing)
-                .font(metrics.typography.rowTrailing)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
+            HStack(spacing: metrics.spacing.sm) {
+                Text(owner)
+                    .lineLimit(1)
+                if let place {
+                    Text(place)
+                        .monospacedDigit()
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+            }
+            .font(metrics.typography.rowTrailing)
+            .foregroundStyle(.secondary)
         }
         .padding(.horizontal, metrics.spacing.md)
         .padding(.vertical, metrics.spacing.sm)

@@ -1,0 +1,122 @@
+name: Personal build
+
+# 个人构建:默认出正式通道(替换日常版,继承现有配置),可选 Dev 通道。
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Release channel"
+        type: choice
+        options: [stable, dev]
+        default: stable
+
+env:
+  VERSION: 0.12.3-konata
+
+concurrency:
+  group: personal-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: macos-26
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve release version
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$CHANNEL" = "dev" ]; then
+            VERSION="${VERSION}-dev.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          if gh release view "v${VERSION}" >/dev/null 2>&1; then
+            echo "::error::Release v${VERSION} already exists. Bump VERSION before publishing again."
+            exit 1
+          fi
+
+      - name: Select Xcode 26
+        run: |
+          XCODE_PATH="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -n1)"
+          if [ -z "$XCODE_PATH" ]; then
+            echo "::error::No Xcode 26.x found on this runner."; exit 1
+          fi
+          echo "DEVELOPER_DIR=$XCODE_PATH/Contents/Developer" >> "$GITHUB_ENV"
+
+      - name: Import signing certificate
+        env:
+          P12_BASE64: ${{ secrets.SIGNING_P12_BASE64 }}
+          P12_PASSWORD: ${{ secrets.SIGNING_P12_PASSWORD }}
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KPW="$(openssl rand -base64 24)"
+          echo "${P12_BASE64}" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security create-keychain -p "$KPW" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KPW" "$KEYCHAIN"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" -P "${P12_PASSWORD}" -A -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KPW" "$KEYCHAIN" >/dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | sed 's/"//g')
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Build app
+        env:
+          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+        run: |
+          set -o pipefail
+          if [ "$CHANNEL" = "stable" ]; then
+            xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
+              OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+              PRODUCT_NAME=Tinycast PRODUCT_BUNDLE_IDENTIFIER=com.tinycast.app \
+              MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+              build 2>&1 | tail -40
+          else
+            xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Debug \
+              -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+              ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Tinycast Self-Signed" \
+              OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+              MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+              build 2>&1 | tail -40
+          fi
+
+      - name: Package
+        env:
+          CHANNEL: ${{ github.event.inputs.channel || 'stable' }}
+        run: |
+          if [ "$CHANNEL" = "stable" ]; then
+            APP="$RUNNER_TEMP/DerivedData/Build/Products/Release/Tinycast.app"
+          else
+            APP="$(ls -d "$RUNNER_TEMP/DerivedData/Build/Products/Debug/"*.app | head -1)"
+          fi
+          echo "APP=$(basename "$APP")"
+          ./Scripts/verify-signature.sh "$APP"
+          mkdir -p dist
+          ditto -c -k --keepParent --sequesterRsrc "$APP" "dist/Tinycast-${VERSION}.zip"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Tinycast-${{ env.VERSION }}
+          path: dist/
+
+      - name: Publish versioned release
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          FLAGS=(--latest)
+          if [ "$CHANNEL" = "dev" ]; then
+            FLAGS=(--prerelease --latest=false)
+          fi
+          gh release create "v${VERSION}" "dist/Tinycast-${VERSION}.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Tinycast ${VERSION}" \
+            --notes "Personal ${CHANNEL} build for macOS 26+ (Apple silicon). Built from ${GITHUB_SHA}. Download and unzip Tinycast-${VERSION}.zip. This build uses the fork's self-signed certificate; macOS may require removing the quarantine attribute before opening it." \
+            "${FLAGS[@]}"

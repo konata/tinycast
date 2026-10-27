@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Moving somewhere — a window, a menu item — rather than changing something. Two features,
+/// Moving somewhere — a window, a menu item — rather than changing something. Three commands share
 /// one switch, so the pane lives here rather than inside either of them.
 struct NavigationSettingsView: View {
     @Environment(AppSettings.self) private var settings
@@ -12,7 +12,7 @@ struct NavigationSettingsView: View {
                 Toggle(isOn: $settings.navigationEnabled) {
                     SettingsFeatureToggleLabel(
                         anchor: .navigationNavigation, title: "Enable navigation",
-                        subtitle: "Switch windows and search menu bar items.")
+                        subtitle: "Switch or summon windows and search menu bar items.")
                 }
             }
             .settingsAnchor(.navigationNavigation)

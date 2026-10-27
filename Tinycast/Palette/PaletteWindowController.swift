@@ -51,6 +51,8 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
     /// The palette's own view, for AppKit UI that must be anchored to it rather than drawn.
     var anchorView: NSView? { panel?.isVisible == true ? panel?.contentView : nil }
 
+    var currentScreen: NSScreen? { panel?.screen }
+
     /// What the palette covered when it was summoned, for anything it expands into on dismissal.
     var previousTarget: InjectionTarget? {
         InjectionTarget.behindPalette(ownWindow: previousOwnWindow, app: previousApp)
@@ -262,6 +264,7 @@ final class PaletteWindowController: NSObject, NSWindowDelegate {
 
     /// A drag re-anchors the session, so the next resize grows from where the user left it.
     func windowDidMove(_ notification: Notification) {
+        core.windowSummonCoordinator.refreshDestination()
         guard let panel else { return }
         let moved = CGPoint(x: panel.frame.minX, y: panel.frame.maxY)
         guard moved != anchor else { return }

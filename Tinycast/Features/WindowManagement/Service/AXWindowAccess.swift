@@ -106,6 +106,17 @@ enum AXWindowAccess {
         return copyWindowID(window, &id) == .success && id != 0 ? id : nil
     }
 
+    static func window(withID id: CGWindowID, in application: AXUIElement) -> AXUIElement? {
+        windows(in: application).first { windowID(of: $0) == id }
+    }
+
+    static func exitFullScreen(_ window: AXUIElement) -> Bool {
+        guard let button = element(window, fullScreenButtonAttribute as String),
+            bool(button, "AXEnabled") != false
+        else { return false }
+        return AXUIElementPerformAction(button, kAXPressAction as CFString) == .success
+    }
+
     private typealias CopyWindowID =
         @convention(c) (AXUIElement, UnsafeMutablePointer<CGWindowID>) -> AXError
 

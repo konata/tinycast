@@ -30,6 +30,9 @@ struct WindowSwitchTests {
         switchable()
         ranking()
         rankingLimit()
+        summonLocations()
+        summonOrdering()
+        summonRankingLimit()
 
         print(failures == 0 ? "Window switch tests passed" : "\(failures) window switch tests failed")
         exit(failures == 0 ? 0 : 1)
@@ -143,5 +146,57 @@ struct WindowSwitchTests {
         expect(
             WindowSwitchQuery.rank(entries, for: "Tab").count == WindowSwitchQuery.resultLimit,
             "the cap holds under a query every row matches")
+    }
+
+    static func summonLocations() {
+        expect(
+            WindowSummonLocation(spaceID: 5, screenID: 2).label == "5 @ 2",
+            "Summon Window shows the raw Space and display IDs")
+        expect(
+            WindowSummonLocation(spaceID: 5, screenID: nil).label == "5 @ ?",
+            "an unmapped display is not guessed from window geometry")
+        expect(
+            WindowSummonLocation.summary([]) == "? @ ?",
+            "a window without reported Space membership remains labeled")
+        expect(
+            WindowSummonLocation.summary([
+                WindowSummonLocation(spaceID: 5, screenID: 2),
+                WindowSummonLocation(spaceID: 6, screenID: 2)
+            ]) == "5 @ 2, 6 @ 2",
+            "a window in several Spaces shows every reported location")
+    }
+
+    static func summonOrdering() {
+        let current = WindowSummonLocation(spaceID: 6, screenID: 2)
+        let remote = WindowSummonLocation(spaceID: 5, screenID: 2)
+        let secondDisplay = WindowSummonLocation(spaceID: 10, screenID: 3)
+        let locations = [0: [current], 1: [remote], 2: [], 3: [secondDisplay, current]]
+        let entries = [
+            entry(0, title: "Inbox"), entry(2, title: "Inbox hidden"),
+            entry(1, title: "Inbox archive"), entry(3, title: "Inbox shared")
+        ]
+        expect(
+            WindowSummonOrder.rank(entries, locations: locations, currentSpaceID: 6, for: "")
+                .map(\.handle) == [1, 2, 0, 3],
+            "remote windows precede unknown locations and every current-Space window")
+        expect(
+            WindowSummonOrder.rank(entries, locations: locations, currentSpaceID: 6, for: "Inbox")
+                .map(\.handle) == [1, 2, 0, 3],
+            "a stronger current-Space title match still remains after remote matches")
+        expect(
+            WindowSummonOrder.rank(entries, locations: locations, currentSpaceID: 10, for: "")
+                .map(\.handle) == [0, 1, 2, 3],
+            "moving the palette to another display changes which Space is last")
+    }
+
+    static func summonRankingLimit() {
+        let entries = (0...WindowSwitchQuery.resultLimit).map { entry($0, title: "Tab") }
+        let locations = Dictionary(uniqueKeysWithValues: entries.map {
+            ($0.handle, [WindowSummonLocation(spaceID: $0.handle == 0 ? 6 : 5, screenID: 2)])
+        })
+        let ranked = WindowSummonOrder.rank(entries, locations: locations, currentSpaceID: 6, for: "Tab")
+        expect(
+            ranked.count == WindowSwitchQuery.resultLimit && !ranked.contains { $0.handle == 0 },
+            "the 200-row cap keeps remote windows before the current Space")
     }
 }
