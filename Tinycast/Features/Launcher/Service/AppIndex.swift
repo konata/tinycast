@@ -839,6 +839,11 @@ final class AppIndex {
 
     private static let ownBundlePrefix = "com.tinycast."
 
+    /// The user-set alias for an entry, for the root screen's Space activation.
+    func userAlias(for entry: AppEntry) -> String? {
+        aliases.alias(for: entry.preferenceKey)
+    }
+
     private func signals(
         for entry: AppEntry, usage: LauncherRankingStore.Snapshot
     ) -> LauncherOrder.Signals {

@@ -172,6 +172,25 @@ struct LauncherScreen: PaletteScreen {
         rows.indices.contains(selection) ? rows[selection] : nil
     }
 
+    /// Space runs the row whose user-set alias the query equals exactly; partial matches and plain
+    /// names never trigger, so typing keeps its normal meaning.
+    func spaceActivation(matching query: String) -> Int? {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, !q.contains(" ") else { return nil }
+        for (index, row) in rows.enumerated() {
+            let entry: AppEntry
+            switch row {
+            case .entry(let app): entry = app
+            case .fallback(_, let app): entry = app
+            default: continue
+            }
+            if let alias = appIndex.userAlias(for: entry),
+                LauncherOrder.Query(alias) == LauncherOrder.Query(q)
+            { return index }
+        }
+        return nil
+    }
+
     /// What the controls are is the owning feature's business; this only forwards.
     func headerAccessory(
         at selection: Int, focus: FocusState<String?>.Binding

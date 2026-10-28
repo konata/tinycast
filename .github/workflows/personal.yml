@@ -11,7 +11,7 @@ on:
         default: stable
 
 env:
-  VERSION: 0.12.3-konata.1
+  VERSION: 0.12.3-konata.2
 
 concurrency:
   group: personal-${{ inputs.channel }}

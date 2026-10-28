@@ -1008,6 +1008,16 @@ struct RootPaletteView: View {
             .font(metrics.typography.searchField)
             .tint(Theme.Colors.textPrimary)
             .focused($searchFocused)
+            // Space runs the row whose user-set alias the query equals, the way ↵ runs the
+            // selection. Attached to the field itself: a focused field consumes printable keys.
+            .onKeyPress(keys: [.space], phases: .down) { press in
+                guard press.modifiers.isEmpty, !menuOpen, !vm.isControlListOpen,
+                    !vm.isComposing, argumentFocused == nil, searchFocused,
+                    let row = screen.spaceActivation(matching: vm.query)
+                else { return .ignored }
+                screen.activate(at: row)
+                return .handled
+            }
             // Fills the row's height, so there's no gap above it for topDragStrip to meet.
             .frame(maxHeight: .infinity)
             .background(alignment: .leading) {

@@ -6,7 +6,7 @@ This file tracks user-requested features added to the fork. Keep one entry per f
 
 **Requirement.** In the launcher, an unmodified Space activates an entry only when the query exactly matches its user-defined alias. Partial aliases and ordinary app names keep normal typing behavior.
 
-**Implementation.** Upstream 0.12.3 now includes the equivalent implementation: `RootPaletteView` intercepts Space on the focused search field, `PaletteScreen.spaceActivation(matching:)` dispatches to `LauncherScreen`, and `AppIndex.userAlias(for:)` supplies the exact alias. This fork no longer carries a separate patch for it.
+**Implementation.** `RootPaletteView` intercepts Space on the focused search field, where printable keys are otherwise consumed. Through `PaletteScreen.spaceActivation(matching:)`, `LauncherScreen` compares the normalized query with `AppIndex.userAlias(for:)` among visible entry and fallback rows, then activates the match. Modified keys, text composition, menus, and other focused controls do not trigger it. This remains a fork feature; upstream has no equivalent patch.
 
 **Code.** `Tinycast/Palette/RootPaletteView.swift`, `Tinycast/Palette/PaletteScreen.swift`, `Tinycast/Features/Launcher/UI/LauncherScreen.swift`, `Tinycast/Features/Launcher/Service/AppIndex.swift`.
 
@@ -38,6 +38,6 @@ This file tracks user-requested features added to the fork. Keep one entry per f
 
 **Requirement.** Increase the fork version and publish the current code through GitHub Actions, with downloadable releases and retained history.
 
-**Implementation.** `.github/workflows/personal.yml` owns the personal build's `VERSION` (currently `0.12.3-konata.1`) and passes it as `MARKETING_VERSION`, with `github.run_number` as `CURRENT_PROJECT_VERSION`. Manual Personal build runs package the signed app using `ditto`, then use `gh release create --target` to publish `v<version>` with `Tinycast-<version>.zip`. Stable releases are marked Latest; Dev builds append `-dev.<run number>` and remain prereleases. Existing versioned releases are rejected rather than overwritten; bump `VERSION` for the next stable release. The old rolling release is retained.
+**Implementation.** `.github/workflows/personal.yml` owns the personal build's `VERSION` (currently `0.12.3-konata.2`) and passes it as `MARKETING_VERSION`, with `github.run_number` as `CURRENT_PROJECT_VERSION`. Manual Personal build runs package the signed app using `ditto`, then use `gh release create --target` to publish `v<version>` with `Tinycast-<version>.zip`. Stable releases are marked Latest; Dev builds append `-dev.<run number>` and remain prereleases. Existing versioned releases are rejected rather than overwritten; bump `VERSION` for the next stable release. The old rolling release is retained.
 
 **Limits.** Personal builds target Apple silicon and macOS 26+, use a self-signed certificate, and may need quarantine removal after downloading. Fork tags are intended for manual downloads; this does not configure the in-app updater to use this fork. Compilation and validation run in manually dispatched GitHub Actions workflows.
