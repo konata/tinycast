@@ -185,7 +185,7 @@ struct LauncherScreen: PaletteScreen {
             default: continue
             }
             if let alias = appIndex.userAlias(for: entry),
-                LauncherOrder.Query(alias) == LauncherOrder.Query(q)
+                LauncherOrder.Query(alias).typed.units == LauncherOrder.Query(q).typed.units
             { return index }
         }
         return nil
