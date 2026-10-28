@@ -38,6 +38,18 @@ This file tracks user-requested features added to the fork. Keep one entry per f
 
 **Requirement.** Increase the fork version and publish the current code through GitHub Actions, with downloadable releases and retained history.
 
-**Implementation.** `.github/workflows/personal.yml` owns the personal build's `VERSION` (currently `0.12.3-konata.2`) and passes it as `MARKETING_VERSION`, with `github.run_number` as `CURRENT_PROJECT_VERSION`. Manual Personal build runs package the signed app using `ditto`, then use `gh release create --target` to publish `v<version>` with `Tinycast-<version>.zip`. Stable releases are marked Latest; Dev builds append `-dev.<run number>` and remain prereleases. Existing versioned releases are rejected rather than overwritten; bump `VERSION` for the next stable release. The old rolling release is retained.
+**Implementation.** `.github/workflows/personal.yml` owns the personal build's `VERSION` (currently `0.12.3-konata.3`) and passes it as `MARKETING_VERSION`, with `github.run_number` as `CURRENT_PROJECT_VERSION`. Manual Personal build runs package the signed app using `ditto`, then use `gh release create --target` to publish `v<version>` with `Tinycast-<version>.zip`. Stable releases are marked Latest; Dev builds append `-dev.<run number>` and remain prereleases. Existing versioned releases are rejected rather than overwritten; bump `VERSION` for the next stable release. The old rolling release is retained.
 
-**Limits.** Personal builds target Apple silicon and macOS 26+, use a self-signed certificate, and may need quarantine removal after downloading. Fork tags are intended for manual downloads; this does not configure the in-app updater to use this fork. Compilation and validation run in manually dispatched GitHub Actions workflows.
+Personal stable versions use `MAJOR.MINOR.PATCH-konata.N`: keep the triple at the merged upstream release, increment `N` for each fork build from it, and restart at `-konata.1` after merging a newer upstream triple. The in-app updater reads `konata/tinycast` releases and accepts that form as a stable update, while Dev builds remain outside the stable feed.
+
+**Limits.** Personal builds target Apple silicon and macOS 26+, use a self-signed certificate, and may need quarantine removal after downloading. The updater installs only a release whose tag and app bundle carry the same accepted version string. Compilation and validation run in manually dispatched GitHub Actions workflows.
+
+## 5. Personal builds update from the fork's releases
+
+**Requirement.** Check for Updates reads this fork's GitHub releases rather than upstream's. The updater accepts the fork's stable `MAJOR.MINOR.PATCH-konata.N` tags in addition to plain `MAJOR.MINOR.PATCH` and upstream beta tags.
+
+**Implementation.** `ReleaseFeed.repository` names `konata/tinycast`, so the daily check and release-note links resolve there. `AppVersion` carries an optional fork revision after the upstream triple, sorts it after that triple, and round-trips the full string because the installer compares it with `CFBundleShortVersionString`. Stable releases stay non-prerelease, while upstream beta parsing remains unchanged.
+
+**Limits.** A fork release must keep its tag, workflow `VERSION`, and bundled `CFBundleShortVersionString` identical. Dev builds append `-dev.<run>` and are not offered through the stable updater. Intel remains unsupported by Personal builds because they publish only an arm64 zip.
+
+**Code.** `Tinycast/Features/Updates/Model/ReleaseFeed.swift`, `Tinycast/Features/Updates/Model/AppVersion.swift`, `Tinycast/Features/Updates/Service/UpdateCheckStore.swift`, `.github/workflows/personal.yml`, `Tests/updates-test.swift`.

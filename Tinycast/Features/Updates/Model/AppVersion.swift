@@ -1,12 +1,14 @@
 import Foundation
 
-/// A released version: `MAJOR.MINOR.PATCH`, optionally `-beta.N`, ordered by semver precedence.
+/// A released version: `MAJOR.MINOR.PATCH`, optionally `-beta.N` or the fork's `-konata.N`.
 struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
     let major: Int
     let minor: Int
     let patch: Int
     /// Nil on a stable release, which outranks every prerelease of the same triple.
     let beta: Int?
+    /// The fork's stable revision; nil on upstream's plain triple.
+    let fork: Int?
 
     init?(_ text: String) {
         var body = Substring(text.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -21,25 +23,31 @@ struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
             let patch = Self.number(numbers[2])
         else { return nil }
 
+        var beta: Int?
+        var fork: Int?
         if halves.count == 2 {
-            // `beta` is the only prerelease channel that ships, so anything else is unreadable.
             let suffix = halves[1].split(separator: ".", omittingEmptySubsequences: false)
-            guard suffix.count == 2, suffix[0] == "beta", let count = Self.number(suffix[1])
-            else { return nil }
-            beta = count
-        } else {
-            beta = nil
+            guard suffix.count == 2, let count = Self.number(suffix[1]) else { return nil }
+            switch suffix[0] {
+            case "beta": beta = count
+            case "konata": fork = count
+            // `beta` and this fork's stable suffix are the only channels that ship.
+            default: return nil
+            }
         }
         self.major = major
         self.minor = minor
         self.patch = patch
+        self.beta = beta
+        self.fork = fork
     }
 
     var isPrerelease: Bool { beta != nil }
 
     var description: String {
         let triple = "\(major).\(minor).\(patch)"
-        return beta.map { "\(triple)-beta.\($0)" } ?? triple
+        if let beta { return "\(triple)-beta.\(beta)" }
+        return fork.map { "\(triple)-konata.\($0)" } ?? triple
     }
 
     static func < (lhs: Self, rhs: Self) -> Bool {
@@ -47,12 +55,12 @@ struct AppVersion: Comparable, Hashable, Sendable, CustomStringConvertible {
         if lhs.minor != rhs.minor { return lhs.minor < rhs.minor }
         if lhs.patch != rhs.patch { return lhs.patch < rhs.patch }
         switch (lhs.beta, rhs.beta) {
-        case (nil, nil): return false
-        // A prerelease leads to its release, so it sorts below one and never above it.
         case (.some, nil): return true
         case (nil, .some): return false
-        case (.some(let left), .some(let right)): return left < right
+        case (.some(let left), .some(let right)) where left != right: return left < right
+        default: break
         }
+        return (lhs.fork ?? 0) < (rhs.fork ?? 0)
     }
 
     /// Rejects a signed or padded field, which `Int` would silently reinterpret.

@@ -2,7 +2,8 @@
 
 By default, Tinycast checks GitHub Releases once a day and offers the newest release for its own
 channel in a native window with its release notes, installs it and relaunches. There is no Sparkle and
-no appcast: the release feed the website already reads is the feed the app reads.
+no appcast: the release feed the website already reads is the feed the app reads. This fork reads
+`konata/tinycast`, so its Personal stable releases are the updates offered to an installed fork.
 
 ## Invariants
 
@@ -79,10 +80,11 @@ no appcast: the release feed the website already reads is the feed the app reads
 | `com.tinycast.app.beta` | `.beta` | prereleases |
 | anything else | `.development` | nothing |
 
-`AppVersion` parses `MAJOR.MINOR.PATCH` and `MAJOR.MINOR.PATCH-beta.N` with semver precedence: a
-prerelease sorts below the release it leads to, and `beta.10` above `beta.9`. Everything else parses
-to nil, so an off-shape tag can never be offered as an update. A release whose tag disagrees with
-its `prerelease` flag is treated as mis-published and skipped.
+`AppVersion` parses `MAJOR.MINOR.PATCH`, `MAJOR.MINOR.PATCH-beta.N`, and this fork's
+`MAJOR.MINOR.PATCH-konata.N` with semver precedence: a prerelease sorts below the release it leads
+to, `beta.10` above `beta.9`, and a fork revision above the upstream triple it was cut from.
+Everything else parses to nil, so an off-shape tag can never be offered as an update. A release whose
+tag disagrees with its `prerelease` flag is treated as mis-published and skipped.
 
 The Intel build is *not* a channel. It shares the stable tag, version, bundle id and signature, so it
 resolves to `.stable` like any other; `ReleaseArchitecture` picks its asset, and nothing about

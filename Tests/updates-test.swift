@@ -43,6 +43,11 @@ struct UpdatesTests {
         expect(AppVersion(" 0.2.1 ")?.description == "0.2.1", "tolerates surrounding whitespace")
         expect(AppVersion("0.2.0-beta.42")?.beta == 42, "reads the beta counter")
         expect(AppVersion("0.2.0-beta.42")?.description == "0.2.0-beta.42", "round-trips a beta")
+        expect(AppVersion("0.12.3-konata.2")?.fork == 2, "reads the fork's stable revision")
+        expect(
+            AppVersion("v0.12.3-konata.2")?.description == "0.12.3-konata.2",
+            "round-trips the fork's stable suffix")
+        expect(AppVersion("0.12.3-konata.2")?.isPrerelease == false, "the fork suffix is stable")
         expect(AppVersion("0.2.1")?.isPrerelease == false, "a plain triple is not a prerelease")
         expect(AppVersion("0.2.0-beta.1")?.isPrerelease == true, "a beta is a prerelease")
 
@@ -53,6 +58,8 @@ struct UpdatesTests {
         expect(AppVersion("0.2.0-alpha.1") == nil, "rejects a channel that never ships")
         expect(AppVersion("0.2.0-beta") == nil, "rejects a beta with no counter")
         expect(AppVersion("0.2.0-beta.x") == nil, "rejects a non-numeric beta counter")
+        expect(AppVersion("0.12.3-konata") == nil, "rejects a fork suffix with no counter")
+        expect(AppVersion("0.12.3-konata.x") == nil, "rejects a non-numeric fork counter")
         expect(AppVersion("") == nil, "rejects an empty string")
         expect(AppVersion("nightly") == nil, "rejects a name")
     }
@@ -69,6 +76,13 @@ struct UpdatesTests {
         expect(version("2.0.0") > version("1.99.99"), "major outranks everything below it")
         expect(version("0.2.1") > version("0.2.0"), "patch breaks a tie")
         expect(version("1.0.0") > version("1.0.0-beta.5"), "a release outranks its own prerelease")
+        expect(
+            version("0.12.3-konata.2") > version("0.12.3-konata.1"),
+            "fork revisions compare numerically")
+        expect(
+            version("0.12.3-konata.1") > version("0.12.3"),
+            "a fork revision follows the upstream triple it was cut from")
+        expect(version("0.12.4") > version("0.12.3-konata.99"), "the next triple wins outright")
         expect(
             version("0.2.0-beta.10") > version("0.2.0-beta.9"),
             "beta counters compare numerically, not lexically")
@@ -149,12 +163,15 @@ struct UpdatesTests {
         let body = feed(
             entry(tag: "v0.2.0", prerelease: false),
             entry(tag: "v0.3.0", prerelease: false),
+            entry(tag: "v0.3.0-konata.1", prerelease: false),
             entry(tag: "v0.4.0-beta.1", prerelease: true),
             entry(tag: "v0.4.0-beta.2", prerelease: true))
 
         let stable = ReleaseFeed.newest(from: body, channel: .stable, architecture: .appleSilicon)
-        expect(stable?.version == AppVersion("0.3.0"), "stable takes the newest release")
-        expect(stable?.tag == "v0.3.0", "and keeps the tag as published")
+        expect(
+            stable?.version == AppVersion("0.3.0-konata.1"),
+            "stable takes the newest release, fork revision included")
+        expect(stable?.tag == "v0.3.0-konata.1", "and keeps the tag as published")
         expect(stable?.notes == "Notes.", "and carries the release notes")
         expect(stable?.assetSize == 1024, "and the asset size, for the progress readout")
         expect(
@@ -207,6 +224,11 @@ struct UpdatesTests {
                 from: feed(entry(tag: "v0.3.0-beta.1", prerelease: false)), channel: .stable,
                 architecture: .appleSilicon) == nil,
             "a beta tag flagged as a release is mis-published, not an update")
+        expect(
+            ReleaseFeed.newest(
+                from: feed(entry(tag: "v0.3.0-konata.1", prerelease: true)), channel: .stable,
+                architecture: .appleSilicon) == nil,
+            "a fork revision flagged as a prerelease is mis-published, not an update")
 
         let mixed = feed(
             entry(tag: "v0.3.0", prerelease: false), entry(tag: "junk", prerelease: false))
