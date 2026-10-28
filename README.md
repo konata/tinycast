@@ -21,46 +21,7 @@ move `Tinycast.app` to `/Applications`.
 Builds are self-signed. If macOS quarantines a downloaded copy, run
 `xattr -dr com.apple.quarantine /Applications/Tinycast.app` once.
 
-## Documentation
+## About this fork
 
-| I want to…                            | Read                                                            |
-| ------------------------------------- | --------------------------------------------------------------- |
-| build and run it locally              | [development.md](docs/development.md)                           |
-| understand how it's wired             | [architecture.md](docs/architecture.md)                         |
-| know how code here is written         | [standards.md](docs/standards.md)                               |
-| verify a change before a PR           | [testing.md](docs/testing.md)                                   |
-| add or restyle UI                     | [ui.md](docs/ui.md)                                             |
-| dig into one feature                  | [docs/features/](docs/README.md#features)                       |
-| package a release                     | [release.md](docs/release.md)                                   |
-| contribute or report a security issue | [CONTRIBUTING.md](CONTRIBUTING.md) · [SECURITY.md](SECURITY.md) |
-
-The full docs index is at [docs/README.md](docs/README.md). AI agents should start with
-[AGENTS.md](AGENTS.md).
-
-## Repository layout
-
-| Path                    | What's there                                               |
-| ----------------------- | ---------------------------------------------------------- |
-| `Tinycast/App/`         | entry point and `AppCore`, the composition root            |
-| `Tinycast/Features/`    | one folder per feature                                     |
-| `Tinycast/Palette/`     | the launcher panel shell                                   |
-| `Tinycast/Windows/`     | dialogs, HUDs, About, and other non-palette windows        |
-| `Tinycast/DesignSystem/`| shared visual primitives and `Theme`                       |
-| `Tinycast/Platform/`    | system shims such as permissions, paths and signposts      |
-| `Tests/`                | standalone test harnesses, run by `./Scripts/run-tests.sh` |
-| `Scripts/`              | tests, lint, data generators, packaging                    |
-| `website/`              | the project site                                           |
-
-`project.yml` is the source of truth for the project. Run `xcodegen generate` after editing it.
-
-## Contribute
-
-Report bugs and ideas in [Issues](https://github.com/konata/tinycast/issues). Before opening a
-PR, read [CONTRIBUTING.md](CONTRIBUTING.md).
-
-## License
-
-Tinycast is an independent fork of [Tinycast](https://github.com/abue-ammar/tinycast), created by
-Abue Ammar and contributors. It is not an official Tinycast release. Modified by konata in 2026.
-Tinycast modifications copyright © 2026 konata. Licensed under AGPL-3.0-or-later. See
-[LICENSE](LICENSE) and [NOTICE.md](NOTICE.md).
+This is a personal fork of [Tinycast](https://github.com/abue-ammar/tinycast), maintained by konata.
+It is not an official Tinycast release.
